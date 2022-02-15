@@ -1,6 +1,6 @@
-YTK-Java-Promise
+YTK-Json
 ================
-基于[jasync-multiny](https://github.com/qw623577789/jasync-mutiny)封装的类似ES的Promise异步对象,支持async-await模式，实现**异步执行async模式、同步阻塞返回block模式**，关键能**让开发者以传统顺序的方式编写异步代码！！！！**
+基于**com.fasterxml.jackson**二次封装的JSON操作库,相比于原库,提供更加友好方便的JSON操作体验,更支持使用**JSON POINT**操作节点及类似Node.js ES2020可选链功能
 
 ## Installation
 
@@ -12,249 +12,507 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-java-promise:v1.5.0'
-    implementation 'io.github.vipcxj:jasync-core:0.1.9'
-    implementation 'io.smallrye.reactive:mutiny:1.1.2'
-
-    // annotationProcessor 'org.projectlombok:lombok:1.18.22' 若用上lombok，要放在前面
-    annotationProcessor 'io.github.vipcxj:jasync-core:0.1.9'
-
-    // testAnnotationProcessor 'org.projectlombok:lombok:1.18.22' 若用上lombok，要放在前面
-    testAnnotationProcessor 'io.github.vipcxj:jasync-core:0.1.9'
+    implementation 'com.github.qw623577789:ytk-json:v1.0.0'
 }
 ```
 
 ## Features
-- 类似ES的Promise.resolve/reject/all/allSettled/race/any/then...catch...finally...功能
-- 支持惰性resolve模式，即只有真正等到触发``async()、block()、awiat()``时，才触发Promise.resolve
-- 支持[smallrye-mutiny](https://smallrye.io/smallrye-mutiny/index.html)的Event-Driven Reactive库的``Uni``、[Vertx](https://vertx.io/)的``Future/Consumer<Handler<T>>/CompositeFuture``转为Promise对象，满足在异步数据处理场景的大部分需求
-- 支持类似ES6的 **Promise.resolve().then().then()...catch...finally...** 链式写法与ES7的 **Promise.resolve().await()**
-- 支持指定运行线程，默认是``CONTENT_THREAD``(当前上下文线程)，可以指定``VERTX_EVENT_LOOP_THREAD``(Vertx事件循环线程)、``VERTX_WORKER_THREAD``(Vertx工作线程)
-
+- 超级方便的JSON节点操作函数, 支持链式操作，丝滑般开发体验，具体见下面详细说明
+- 支持ES2020特性的可选链JSON POINT
+- 友好的错误提示，当节点路径不存在时，报错可提示具体节点路径(节点遍历也可以支持)
 ## Function
 
-- **JPromise\<Void> resolve()** 包装null值的Promise
-- **JPromise\<T> resolve(T value)** 包装对象成Promise
-- ***JPromise\<T> resolve(PromiseSupplier\<T> promiseSupplier)** 包装异步函数,作用等同于``Promise.resolve().then(() -> promiseSupplier)``
-- **JPromise\<T> resolve(Future\<T> future)** 将[Vertx.Future](https://vertx.io/docs/vertx-core/java/#_future_results)异步对象包装成Promise,并可等待获取结果值
-- **JPromise<List\<T>> resolve(CompositeFuture future)** 将[Vertx.CompositeFuture](https://vertx.io/docs/vertx-core/java/#_future_coordination)【vertx下的promise.all/race/any/join功能的实现】异步对象包装成Promise,并可依次返回结果
-- **JPromise\<T> resolve(Consumer<Handler\<T>> consumer)** 包装一个lamda函数，当传入的参数(是一个方法)被调用时，返回结果值
-- **JPromise\<Void\> resolve(RunOn runOn)** 指定resolve运行线程，后面的...then...then...将在对应线程运行
-- **JPromise\<Void\> resolve(RunOn runOn, PromiseSupplier\<T\> promiseSupplier)** 惰性resolve模式**指定Promise运行线程**执行异步函数，即只有真正等到触发``async()、block()、awiat()``时，才触发Promise.resolve
-- **JPromise\<Void\> resolve(RunOn runOn, Supplier\<T\> supplier)** 惰性resolve模式**指定Promise运行线程**执行同步函数，即只有真正等到触发``async()、block()、awiat()``时，才触发Promise.resolve
-- **JPromise\<T> resolve(Uni\<T> value)** 包装[smallrye-mutiny.Uni](https://smallrye.io/smallrye-mutiny/getting-started/creating-unis)异步对象成Promise,并可等待获取结果值
-- **JPromise\<T> resolve(\<JPromise\<T> promise)** 二次包装JPromise成Promise对象，可设置执行线程
-- **JPromise\<T> deferResolve(Supplier\<T> deferFunc)** 包装lamda表达式(**返回同步结果**)成Promise对象，当触发``async()、block()、await()``时，才执行lamda方法触发Promise.resolve
-- **JPromise\<List\<Object>> all(JPromise<?>... promises)** 并发执行多个Promise，并将结果依次返回。**若其中一个Promise抛错，则将终止等待所有Promise结果并立即抛出错误**
-- **JPromise\<List\<Object>> allSettled(JPromise<?>... promises)** 并发执行多个Promise，并将结果依次返回。**将等待所有Promise结果返回(无论是正常返回还是抛错)，返回列表里每个item为正常数据或者error**
-- **JPromise\<Object> race(JPromise<?>... promises)** 并发执行多个Promise，**当其中某个Promise最先出结果时(正常返回或者抛错)，立即返回该结果**。
-- **JPromise\<Object> any(JPromise<?>... promises)** 并发执行多个Promise，当其中某个Promise出**正常结果时(抛错则跳过，继续等待)，立即返回该结果**。
-- **<T> JPromise<T> reject()** 异步抛出``RuntimeException``错误
-- **<T> JPromise<T> reject(String errorMessage)** 异步抛出``RuntimeException(errorMessage)``错误
-- **<T> JPromise<T> reject(Throwable t)** 异步抛出自定义错误
-- 通过``Promise.setVertx()``设置Vertx实例，由Vertx提供、管理线程池。上述每个方法第一个参数支持传``RunOn``参数指定运行线程
+- **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
+- **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
+- **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例
+- **String toString()** 将JSON实例转换为JSON字符串
+- **JSON deepCopy()** 深拷贝JSON实例
+- **JsonNode getJacksonNode()** 将JSON实例转换为com.fasterxml.jackson的``JsonNode``
+- **JSON sPut(String id, Object value)** *静态方法*,　用于创建**JSON对象实例**,并设置key/value, value支持*大部分Java对象*及*JSON实例*
+- **JSON put(String id, Object value)** 在**JSON对象实例**上设置key/value, value支持*大部分Java对象*及*JSON实例*
+- **JSON sAdd(Object ...value)** *静态方法*,　用于创建**JSON数组实例**,并一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
+- **JSON add(Object ...value)** 在**JSON数组实例**上一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
+- **JSON concat(List<?> list)** 在**JSON数组实例**上添加存于``List``的元素，value支持*大部分Java对象*及*JSON实例*
+- **Point point(String point)** 根据JSON路径(例如 \.aaa.bbb[0].ccc[*].ddd)返回一个``Point``对象，用于对节点进行``get``、``put``、``delete``、``has``、``add``、``concat``操作
+- **Point point(String point, Object defaultValue)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．返回默认值
+- **Point point(String point, Supplier\<Object\> defaultValueFunc)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．执行函数返回默认值
+- **Point point(String point, HashMap<String, Object> defaultValueMap)** 在**Point point(String point)**基础上，可为``第一个参数的point``路径批量设置默认值(point=".aaa.bbb.ccc", 可先设置.aaa = 对象，再设置.aaa.bbb = 对象)，在``get``、``has``操作时，若**节点不存在**时．**执行函数/直接**返回默认值
+- Point操作
+    - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性**)
+        - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、**Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\> itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String, Object\> asMap()**、**size()**
+    - **Get get(boolean toWithDefault, boolean supportNullishKey)** 在上get方法基础上，可以控制**是否开启默认值**、**是否开启可选链**特性
+    - **JSON put(String id, Object value)** 给对应point的JSON对象节点赋值，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
+    - **JSON add(Object... items)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
+    - **JSON concat(List\<Object\> list)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
+    - **boolean has()** 判断point对应节点值有没有存在(*默认会开启默认值特性*)
+    - **boolean has(boolean toWithDefault)** 判断point对应节点值有没有存在,可设定启不启用*默认值特性*
+    - **JSON delete()** 删除point节点的值
+    - **Point defaultValue(Object defaultValue)/Point defaultValue(HashMap\<String, Object\> defaultValueMap)** 设置节点默认值
+    - **Point point(String point)** 在原来Point上在延伸point, 例如: point(".aaa.bbb")等同于point(".aaa").point(".bbb"),此特性用于支持point节点分级
 
 
 ## Usage
 
-- then方法必须返回Promise对象
-- 使用``await()``方法的函数必须加``@Async()``注解，并且返回Promise对象
+更多的样例请看测试用例
 
-#### Promise链式异步非阻塞写法
-
+### 对象构建
 ```java
-void test() {
-    io.vertx.core.Promise<Long> sleep3s = io.vertx.core.Promise.promise();
-    io.vertx.core.Promise<Long> sleep5s = io.vertx.core.Promise.promise();
-    vertx.setTimer(3000, timerId -> sleep3s.complete(timerId)); //睡眠3s后返回timerId
-    vertx.setTimer(5000, timerId -> sleep5s.complete(timerId)); //睡眠5s后返回timerId
-
-    Promise
-        .resolve(sleep3s.future())
-        .then(sleep3sTimerId -> Promise.resolve(sleep5s.future()))
-        .then(sleep5sTimerId -> {
-            System.out.println("sleep5sTimerId is:" + sleep5sTimerId);
-            return Promise.resolve();
-        })
-        .async();
+String json = JSON
+    .sPut("int", 1)
+    .put("string", "2")
+    .put("float", 2.5f)
+    .put("double", 2.5d)
+    .put("BigDecimal", BigDecimal.valueOf(1))
+    .put("boolean", false)
+    .put("null", null)
+    .put(
+        "map",
+        new HashMap<String, String>() {
+            {
+                put("a", "1");
+                put("b", "2");
+            }
+        }
+    )
+    .put("JSON.Map", JSON.sPut("m1", "1").put("m2", "2"))
+    .put(
+        "List",
+        new ArrayList<String>() {
+            {
+                add("1");
+                add("2");
+            }
+        }
+    )
+    .put(
+        "JSON.List",
+        JSON
+            .sAdd(1)
+            .add(2, 4)
+            .add(5)
+            .add(
+                new ArrayList<Integer>() {
+                    {
+                        add(6);
+                        add(7);
+                    }
+                }
+            )
+    )
+    .toString();
+```
+```json
+{
+    "int": 1,
+    "string": "2",
+    "float": 2.5,
+    "double": 2.5,
+    "BigDecimal": 1,
+    "boolean": false,
+    "null": null,
+    "map": {
+        "a": "1",
+        "b": "2"
+    },
+    "JSON.Map": {
+        "m1": "1",
+        "m2": "2"
+    },
+    "List": [
+        "1",
+        "2"
+    ],
+    "JSON.List": [1, 2, 4, 5, [ 6, 7 ]]
 }
 ```
 
-#### Promise链式异步阻塞写法
-
+### 数组构建
 ```java
-void test() {
-    io.vertx.core.Promise<Long> sleep3s = io.vertx.core.Promise.promise();
-    io.vertx.core.Promise<Long> sleep5s = io.vertx.core.Promise.promise();
-    vertx.setTimer(3000, timerId -> sleep3s.complete(timerId)); //睡眠3s后返回timerId
-    vertx.setTimer(5000, timerId -> sleep5s.complete(timerId)); //睡眠5s后返回timerId
+String json = JSON
+    .sAdd(
+        1,
+        3,
+        new ArrayList<Integer>() {
+            {
+                add(6);
+                add(7);
+            }
+        }
+    )
+    .add(2, 4)
+    .add(5)
+    .add(
+        new ArrayList<Integer>() {
+            {
+                add(6);
+                add(7);
+            }
+        }
+    )
+    .add((Object) null)
+    .add(
+        JSON
+            .sPut("array.map.int", 1)
+            .put(
+                "array.map.map",
+                new HashMap<String, String>() {
+                    {
+                        put("m1", "1");
+                    }
+                }
+            )
+            .put(
+                "array.map.array",
+                new ArrayList<String>() {
+                    {
+                        add("1");
+                    }
+                }
+            )
+    )
+    .concat(
+        new ArrayList<String>() {
+            {
+                add("concat.1");
+            }
+        }
+    )
+    .toString();
+```
 
-    long sleep5sTimerId = Promise
-        .resolve(sleep3s.future())
-        .then(sleep3sTimerId -> Promise.resolve(sleep5s.future()))
-        .block();
+```json
+[
+    1,
+    3,
+    [
+        6,
+        7
+    ],
+    2,
+    4,
+    5,
+    [
+        6,
+        7
+    ],
+    null,
+    {
+        "array.map.int": 1,
+        "array.map.map": {
+            "m1": "1"
+        },
+        "array.map.array": [
+            "1"
+        ]
+    },
+    "concat.1"
+]
 
-    System.out.println("sleep5sTimerId is:" + sleep5sTimerId);
+```
+
+### Point.get
+现json如下
+```json
+{
+    "int": 1,
+    "string": "2",
+    "float": 2.5,
+    "double": 2.5,
+    "BigDecimal": 1,
+    "boolean": false,
+    "null": null,
+    "map": {
+        "a": "1",
+        "b": "2"
+    },
+    "JSON.Map": {
+        "m1": "1",
+        "m2": "2"
+    },
+    "List": [
+        "1",
+        "2"
+    ],
+    "ListMap": [
+        {
+            "id1": "1",
+            "id2": "2",
+            "id3": [
+                [
+                    {
+                        "id11": "1",
+                        "id22": "2",
+                        "id33": {
+                            "id333": "value1"
+                        }
+                    }
+                ]
+            ]
+        },
+        {
+            "id1": "11",
+            "id2": "22",
+            "id3": [
+                [
+                    {
+                        "id11": "11",
+                        "id22": "22",
+                        "id33": {
+                            "id333": "value2"
+                        }
+                    }
+                ]
+            ]
+        }
+    ],
+    "JSON.List": [
+        1,
+        2,
+        4,
+        5,
+        [
+            6,
+            7
+        ]
+    ]
 }
 ```
 
-#### Promise链式then...catch...finally写法
 ```java
-void test() {
-    io.vertx.core.Promise<Long> sleep3s = io.vertx.core.Promise.promise();
-    io.vertx.core.Promise<Long> sleep5s = io.vertx.core.Promise.promise();
-    vertx.setTimer(3000, timerId -> sleep3s.complete(timerId)); //睡眠3s后返回timerId
-    vertx.setTimer(5000, timerId -> sleep5s.complete(timerId)); //睡眠5s后返回timerId
+Assertions.assertEquals(json.point(".int").get().asInt(), 1);
 
-    Promise
-        .resolve(sleep3s.future())
-        .then(() -> {
-            return Promise.reject("在这里抛了个错。。。");
-        })
-        .then(sleep3sTimerId -> Promise.resolve(sleep5s.future()))
-        .then(sleep5sTimerId -> {
-            System.out.println("sleep5sTimerId is:" + sleep5sTimerId);
-            return Promise.resolve();
-        })
-        .doCatch(Exception.class, error -> {
-            System.out.println("抓到了一个错误:" + error.getMessage());
-        })
-        .doFinally(() -> {
-            System.out.println("finally");
-            return Promise.resolve();
-        })
-        .async();
-}
-```
-
-#### await异步非阻塞写法
-
-```java
-@Async
-private JPromise<Void> test() {
-    io.vertx.core.Promise<Long> sleep3s = io.vertx.core.Promise.promise();
-    io.vertx.core.Promise<Long> sleep5s = io.vertx.core.Promise.promise();
-    vertx.setTimer(3000, timerId -> sleep3s.complete(timerId)); //睡眠3s后返回timerId
-    vertx.setTimer(5000, timerId -> sleep5s.complete(timerId)); //睡眠5s后返回timerId
-
-    long sleep3sTimerId = Promise.resolve(sleep3s.future()).await();
-
-    System.out.println("sleep3sTimerId is:" + sleep3sTimerId);
-
-    long sleep5sTimerId = Promise.resolve(sleep5s.future()).await();
-
-    System.out.println("sleep5sTimerId is:" + sleep5sTimerId);
-
-    // @Async注解的函数必须返回Promise
-    return Promise.resolve(); 
-}
-
-// 调用
-test().async();
-```
-
-#### await异步阻塞写法
-
-```java
-@Async
-private JPromise<Long> test() {
-    io.vertx.core.Promise<Long> sleep3s = io.vertx.core.Promise.promise();
-    io.vertx.core.Promise<Long> sleep5s = io.vertx.core.Promise.promise();
-    vertx.setTimer(3000, timerId -> sleep3s.complete(timerId)); //睡眠3s后返回timerId
-    vertx.setTimer(5000, timerId -> sleep5s.complete(timerId)); //睡眠5s后返回timerId
-
-    long sleep3sTimerId = Promise.resolve(sleep3s.future()).await();
-
-    System.out.println("sleep3sTimerId is:" + sleep3sTimerId);
-
-    long sleep5sTimerId = Promise.resolve(sleep5s.future()).await();
-
-    System.out.println("sleep5sTimerId is:" + sleep5sTimerId);
-
-    return Promise.resolve(sleep5sTimerId)
-}
-
-// 调用
-System.out.println(test().block()); //输出sleep5sTimerId值
-```
-
-#### await try...catch...写法
-
-```java
-@Async
-private JPromise<Void> test() {
-    io.vertx.core.Promise<Long> sleep3s = io.vertx.core.Promise.promise();
-    io.vertx.core.Promise<Long> sleep5s = io.vertx.core.Promise.promise();
-    vertx.setTimer(3000, timerId -> sleep3s.complete(timerId)); //睡眠3s后返回timerId
-    vertx.setTimer(5000, timerId -> sleep5s.complete(timerId)); //睡眠5s后返回timerId
-
-    long sleep3sTimerId = Promise.resolve(sleep3s.future()).await();
-
-    System.out.println("sleep3sTimerId is:" + sleep3sTimerId);
-
-    long sleep5sTimerId = Promise.resolve(sleep5s.future()).await();
-
-    System.out.println("sleep5sTimerId is:" + sleep5sTimerId);
-
-    try {
-        Promise.reject("在这里抛了个错。。。").await();
+// key带有.的，需要用引号把key包起来
+Assertions.assertEquals(
+    json.point(".\"JSON.Map\"").get().asMap().hashCode(),
+    new HashMap<String, String>() {
+        {
+            put("m1", "1");
+            put("m2", "2");
+        }
     }
-    catch(Exception error) {
-        System.out.println("抓到了一个错误:" + error.getMessage());
+        .hashCode()
+);
+
+Assertions.assertEquals(
+    json.point(".List").get().asList(String.class).hashCode(),
+    new ArrayList<String>() {
+        {
+            add("1");
+            add("2");
+        }
     }
+        .hashCode()
+);
 
-    // @Async注解的函数必须返回Promise
-    return Promise.resolve(); 
-}
+Assertions.assertEquals(json.point(".List[0]").get().asString(), "1");
 
-// 调用
-test().async();
+Assertions.assertEquals(
+    json.point(".ListMap[0].id3[0][0]").get().asMap().hashCode(),
+    new HashMap<>() {
+        {
+            put("id11", "1");
+            put("id22", "2");
+            put(
+                "id33",
+                new HashMap<String, String>() {
+                    {
+                        put("id333", "value1");
+                    }
+                }
+            );
+        }
+    }
+        .hashCode()
+);
+
+// *表示遍历节点，注意：一旦用上*,结果必定是数组
+Assertions.assertEquals(
+    json.point(".ListMap[*].id3[*][*].id11").get().asList(String.class).hashCode(),
+    new ArrayList<>() {
+        {
+            add("1");
+            add("11");
+        }
+    }
+        .hashCode()
+);
+
+// json数组获取节点
+Assertions.assertEquals(
+    jsonArray.point(".[0].ListMap[*].id3[*][*].id33.id333").get().asList(String.class).hashCode(),
+    new ArrayList<>() {
+        {
+            add("value1");
+            add("value2");
+        }
+    }
+        .hashCode()
+);
 ```
 
-#### 终止执行异步方法
+#### 可选链
 
 ```java
-@Async
-private JPromise<Void> test() {
-    io.vertx.core.Promise<Long> sleep3s = io.vertx.core.Promise.promise();
-    io.vertx.core.Promise<Long> sleep5s = io.vertx.core.Promise.promise();
-    vertx.setTimer(3000, timerId -> sleep3s.complete(timerId)); //睡眠3s后返回timerId
-    vertx.setTimer(5000, timerId -> sleep5s.complete(timerId)); //睡眠5s后返回timerId
+Assertions.assertEquals(json.point("?.int-null").get().asInt(), null);
 
-    long sleep3sTimerId = Promise.resolve(sleep3s.future()).await();
+Assertions.assertEquals(json.point("?.\"JSON.Map-null\"").get().asMap(), null);
 
-    System.out.println("sleep3sTimerId is:" + sleep3sTimerId);
+Assertions.assertEquals(json.point("?.List[3]").get().asString(), null);
 
-    long sleep5sTimerId = Promise.resolve(sleep5s.future()).await();
+Assertions.assertEquals(json.point(".ListMap[0]?.id3[0][1]").get().asMap(), null);
 
-    System.out.println("sleep5sTimerId is:" + sleep5sTimerId);
-
-    try {
-        Promise.reject("在这里抛了个错。。。").await();
+Assertions.assertEquals(
+    json.point(".ListMap[*].id3[*][*]?.不存在节点").get().asList(String.class).hashCode(),
+    new ArrayList<>() {
+        {
+            add(null);
+            add(null);
+        }
     }
-    catch(Exception error) {
-        System.out.println("抓到了一个错误:" + error.getMessage());
+        .hashCode()
+);
+
+Assertions.assertEquals(
+    json.point(".ListMap[*]?.不存在节点[*][*]?.不存在节点").get().asList(String.class).hashCode(),
+    new ArrayList<>() {
+        {
+            add(null);
+            add(null);
+        }
     }
+        .hashCode()
+);
 
-    // @Async注解的函数必须返回Promise
-    return Promise.resolve(); 
-}
-
-Handle task = test().async();
-
-System.out.println("isCanceled:" + task.isCanceled);
-
-// 4秒后终止异步任务
-vertx.setTimer(4000, timerId -> task.cancel());
+Assertions.assertEquals(
+    jsonArray.point("?.[2].ListMap[*].id3[*][*].id33.id333").get().asList(String.class).hashCode(),
+    new ArrayList<>() {
+        {
+            add(null);
+        }
+    }
+        .hashCode()
+);
 
 ```
 
-## Notice
-- 本组件仅支持javac(Sun JDK)编译器，不支持ecj(elicpise for Java)编译器
-- *(此条idea用户可以忽略,vscode用户必看)* 虽然vscode-java组件**运行、调试、跑测试用例**时用的是ecj编译器，但项目做了专门适配，需要安装改造后的[Test Runner for Java
-](https://github.com/qw623577789/vscode-java-test)插件以支持在vscode里运行或者调试, 配置详情见``.vscode``文件夹里的配置与``build.gradle``里的``compileJava``、``compileTestJava``
+#### 默认值
+```java
+Assertions.assertEquals(json.point(".int-null", 1).get().asInt(), 1);
 
-## Debug when compile error
-- 有提示报错的位置的，在对应的报错函数上``Async``注解打开``logResultTree = true``即可打印转化后的代码
-- 没有提示具体错误的，``compileJava``进行调试，断点定位在``io.github.vipcxj.jasync.core.AsyncProcessor#process``第94行，查看``element.name与element.owner``找到错误的类名与方法
-- 项目若同时使用``lombok``，``annotationProcessor 'org.projectlombok:lombok:xxx'``应该写于``annotationProcessor 'io.github.vipcxj:jasync-core:xxx'``前面
+Assertions.assertEquals(
+    json.point(".ListMap[*].id3[*][*].id11-null", "fix").get().asList(String.class).hashCode(),
+    new ArrayList<>() {
+        {
+            add("fix");
+            add("1"); // 节点存在则返回原值
+            add("fix");
+        }
+    }
+        .hashCode()
+);
+
+Assertions.assertEquals(
+    jsonArray
+        .point(".[0].ListMap[*].id3[*][*].id33.id333-null", () -> "fix")
+        .get()
+        .asList(String.class)
+        .hashCode(),
+    new ArrayList<>() {
+        {
+            add("fix");
+            add("fix");
+            add("fix");
+        }
+    }
+        .hashCode()
+);
+
+Assertions.assertEquals(
+    json
+        .point(".ListMap[0].id3[0][0].不存在节点.不存在节点")
+        .defaultValue(
+            new HashMap<String, Object>() {
+                {
+                    put(".ListMap[0].id3[0][0].不存在节点", new HashMap<String, Object>() {});
+                    put(".ListMap[0].id3[0][0].不存在节点.不存在节点", "fix");
+                }
+            }
+        )
+        .get()
+        .asString(),
+    "fix"
+);
+```
+
+### Point.has
+
+```java
+Assertions.assertEquals(json.point(".int").has(), true);
+
+// 遍历的情况，只要其中一个元素有都算有
+Assertions.assertEquals(json.point(".ListMap[*].id3[*][*].id11").has(), true);
+
+// 默认启用默认值特性
+Assertions.assertEquals(json.point(".ListMap[*].id3[*][*].不存在节点", 1).has(), true);
+
+// 关闭默认值特性
+Assertions.assertEquals(json.point(".ListMap[*].id3[*][*].不存在节点", 1).has(false), false);
+```
+
+### Point.delete
+```java
+json.point(".int").delete();
+
+json.point(".ListMap[0].id3[0][0].id33.id333").delete();
+
+// 遍历删除
+json.point(".ListMap[1].id3[*][*].id11").delete();
+```
+
+### Point.put
+```java
+json.point(".").put("int_新节点", 1);
+
+// 遍历数组节点设置key
+json.point(".ListMap[*].id3[*][*]").put("int_新节点", 1);
+
+// 迭代point特性
+json.point(".ListMap[1]").point(".id3[*][*]").put("int_新节点", 1);
+Assertions.assertEquals(json.point(".ListMap[1].id3[0][0].int_新节点").has(), true);
+Assertions.assertEquals(json.point(".ListMap[0].id3[0][0].int_新节点").has(), false);
+
+jsonArray.point(".[*].ListMap[*].id3[*][*].id33").put("int_新节点", 1);
+Assertions.assertEquals(jsonArray.point(".[0].ListMap[0].id3[0][0].id33.int_新节点").has(), true);
+Assertions.assertEquals(jsonArray.point(".[0].ListMap[1].id3[0][0].id33.int_新节点").has(), true);
+Assertions.assertEquals(jsonArray.point(".[1].ListMap[0].id3[0][0].id33.int_新节点").has(), true);
+Assertions.assertEquals(jsonArray.point(".[1].ListMap[1].id3[0][0].id33.int_新节点").has(), true);
+```
+
+### Point.add
+```java
+json
+    .point(".ListMap")
+    .add(
+        JSON
+            .sPut("id1", "1")
+            .put("id2", "2")
+            .put(
+                "id3",
+                JSON.sAdd(
+                    JSON.sAdd(
+                        JSON
+                            .sPut("id11", "1")
+                            .put("id22", "2")
+                            .put("id33", JSON.sPut("id333", "value1"))
+                    )
+                )
+            )
+    );
+
+// 遍历节点添加元素
+json
+    .point(".ListMap[*].id3")
+    .add(
+        JSON.sAdd(JSON.sPut("id11", "1").put("id22", "2").put("id33", JSON.sPut("id333", "value1")))
+    );
+```
