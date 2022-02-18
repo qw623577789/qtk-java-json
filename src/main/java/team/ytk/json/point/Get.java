@@ -24,6 +24,8 @@ public class Get {
 
     private static ObjectMapper jackson = new ObjectMapper();
 
+    private boolean nullable = false;
+
     public Get(JsonNode value, HashMap<String, DefaultType> defaultValueMapper) {
         this.valueNode = Node.gen(value, ".");
         defaultValueMapper
@@ -33,7 +35,9 @@ public class Get {
                 entry -> {
                     this.regexpDefaultValueMapper.put(
                             Pattern.compile(
-                                "^" + this.escapeExprSpecialWord(entry.getKey()).replaceAll("\\*", "\\d+") + "$"
+                                "^" +
+                                this.escapeExprSpecialWord(entry.getKey()).replaceAll("\\*", "\\d+") +
+                                "$"
                             ),
                             entry.getValue()
                         );
@@ -55,7 +59,15 @@ public class Get {
         return valueNode.isArray();
     }
 
-    public Get get(String breadcrumb, String point, boolean toWithDefault, boolean supportNullishKey) {
+    public Get get(
+        String breadcrumb,
+        String point,
+        boolean toWithDefault,
+        boolean supportNullishKey,
+        boolean nullable
+    ) {
+        this.nullable = nullable;
+
         String absouleBreakcrumb = breadcrumb + point;
 
         if (absouleBreakcrumb.equals(".") || absouleBreakcrumb.equals("?.")) return this;
@@ -320,9 +332,13 @@ public class Get {
     }
 
     public <T> T as(Class<T> type) {
-        if (this.valueNode.isMissingNode()) throw new NullPointerException(
-            this.valueNode.getPath() + " is missing"
-        );
+        if (this.valueNode.isMissingNode()) {
+            if (this.nullable) {
+                return null;
+            } else {
+                throw new NullPointerException(this.valueNode.getPath() + " is missing");
+            }
+        }
         return this.valueNode.isNull() ? null : jackson.convertValue(this.valueNode.getJacksonNode(), type);
     }
 
@@ -343,11 +359,25 @@ public class Get {
     public <T> List<T> asList(Class<T> itemType, boolean ignoreMissingNode) {
         if (valueNode.isNull()) return null;
 
-        if (valueNode.isMissingNode() || valueNode.stream().allMatch(item -> item.isMissingNode())) {
-            String missingPath = valueNode.isMissingNode()
-                ? valueNode.getPath()
-                : valueNode.stream().map(node -> node.getPath()).collect(Collectors.joining(","));
-            throw new NullPointerException(missingPath + " is missing");
+        if (valueNode.isMissingNode()) {
+            if (this.nullable) {
+                return null;
+            } else {
+                String missingPath = valueNode.getPath();
+                throw new NullPointerException(missingPath + " is missing");
+            }
+        }
+
+        if (valueNode.stream().allMatch(item -> item.isMissingNode())) {
+            if (this.nullable) {
+                return valueNode.stream().map(node -> (T) null).collect(Collectors.toList());
+            } else {
+                String missingPath = valueNode
+                    .stream()
+                    .map(node -> node.getPath())
+                    .collect(Collectors.joining(","));
+                throw new NullPointerException(missingPath + " is missing");
+            }
         }
 
         if (!valueNode.isArray()) throw new RuntimeException("最终节点非数组节点");
@@ -367,7 +397,13 @@ public class Get {
     public <T> HashMap<String, T> asMap(Class<T> valueType) {
         if (valueNode.isNull()) return null;
 
-        if (valueNode.isMissingNode()) throw new NullPointerException(valueNode.getPath() + " is missing");
+        if (valueNode.isMissingNode()) {
+            if (this.nullable) {
+                return null;
+            } else {
+                throw new NullPointerException(valueNode.getPath() + " is missing");
+            }
+        }
 
         if (!valueNode.isObject()) throw new RuntimeException("最终节点非对象节点");
 

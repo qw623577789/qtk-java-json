@@ -1156,6 +1156,246 @@ class JSONTest {
         );
     }
 
+    @Test
+    void pointNullable() {
+        JSON json = JSON
+            .sPut("int", 1)
+            .put("string", "2")
+            .put("float", 2.5f)
+            .put("double", 2.5d)
+            .put("BigDecimal", BigDecimal.valueOf(1))
+            .put("boolean", false)
+            .put("null", null)
+            .put(
+                "map",
+                new HashMap<String, String>() {
+                    {
+                        put("a", "1");
+                        put("b", "2");
+                    }
+                }
+            )
+            .put("JSON.Map", JSON.sPut("m1", "1").put("m2", "2"))
+            .put(
+                "List",
+                new ArrayList<String>() {
+                    {
+                        add("1");
+                        add("2");
+                    }
+                }
+            )
+            .put(
+                "ListMap",
+                JSON.sAdd(
+                    JSON
+                        .sPut("id1", "1")
+                        .put("id2", "2")
+                        .put(
+                            "id3",
+                            JSON.sAdd(
+                                JSON.sAdd(
+                                    JSON
+                                        .sPut("id11", "1")
+                                        .put("id22", "2")
+                                        .put("id33", JSON.sPut("id333", "value1"))
+                                )
+                            )
+                        ),
+                    JSON
+                        .sPut("id1", "11")
+                        .put("id2", "22")
+                        .put(
+                            "id3",
+                            JSON.sAdd(
+                                JSON.sAdd(
+                                    JSON
+                                        .sPut("id11", "11")
+                                        .put("id22", "22")
+                                        .put("id33", JSON.sPut("id333", "value2"))
+                                )
+                            )
+                        )
+                )
+            )
+            .put(
+                "JSON.List",
+                JSON
+                    .sAdd(1)
+                    .add(2, 4)
+                    .add(5)
+                    .add(
+                        new ArrayList<Integer>() {
+                            {
+                                add(6);
+                                add(7);
+                            }
+                        }
+                    )
+            );
+
+        JSON jsonArray = JSON.sAdd(json, json);
+        System.out.println(json.toString());
+        // System.out.println(json.point(".ListMap[0].id3").get(true).asString());
+        Assertions.assertEquals(json.point(".int-null").get(true).asInt(), null);
+        Assertions.assertEquals(json.point(".string-null").get(true).asString(), null);
+        Assertions.assertEquals(json.point(".float-null").get(true).asFloat(), null);
+        Assertions.assertEquals(json.point(".double-null").get(true).asDouble(), null);
+        Assertions.assertEquals(json.point(".BigDecimal-null").get(true).asBigDecimal(), null);
+        Assertions.assertEquals(json.point(".boolean-null").get(true).asBoolean(), null);
+        Assertions.assertEquals(json.point(".null-null").get(true).asNull(), null);
+
+        Assertions.assertEquals(json.point(".map-null").get(true).asMap(), null);
+
+        Assertions.assertEquals(json.point(".\"JSON.Map-null\"").get(true).asMap(), null);
+        Assertions.assertEquals(json.point(".List-null").get(true).asList(String.class), null);
+
+        Assertions.assertEquals(json.point(".map.a-null").get(true).asString(), null);
+        Assertions.assertEquals(json.point(".List[3]").get(true).asString(), null);
+        Assertions.assertEquals(json.point(".ListMap[0].id0").get(true).asString(), null);
+        Assertions.assertEquals(json.point(".ListMap[0].id3[1]").get(true).asList(), null);
+        Assertions.assertEquals(json.point(".ListMap[0].id3[0][1]").get(true).asMap(), null);
+        Assertions.assertEquals(
+            json.point(".ListMap[*].id0").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            json.point(".ListMap-null[*].id0").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            json.point(".ListMap[*].id3[*][*].id111").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            json.point(".ListMap[*].id4[*][*].id111").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            json.point(".ListMap[1].id3[*][*].id111").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            json.point(".ListMap[*].id3[*][*].id33.id3333").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            jsonArray
+                .point(".[0].ListMap[*].id3[*][*].id33.id3333")
+                .get(true)
+                .asList(String.class)
+                .hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            jsonArray.point(".[2].ListMap[*].id3[*][*].id33.id333").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(json.point(".ListMap[0].id3[0][0].id331.id333").get(true).asString(), null);
+
+        Assertions.assertEquals(json.point(".ListMap[3].id3[0][0].id331.id333").get(true).asString(), null);
+
+        Assertions.assertEquals(json.point(".ListMap[0].id33[0][0].id331.id333").get(true).asString(), null);
+
+        Assertions.assertEquals(json.point(".ListMap[0].id3[0][0].id331.id333").get(true).asString(), null);
+
+        Assertions.assertEquals(
+            json.point(".ListMap1[*].id33[0][0].id331.id333").get(true).asList(String.class).hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(json.point(".ListMap[0].id3[10][0].id33.id333").get(true).asString(), null);
+
+        Assertions.assertEquals(
+            json.point(".ListMap[*].id3[10][0].id33.id333").get(true).asList().hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            jsonArray.point(".[3].ListMap[*].id3[*][*].id33.id333").get(true).asList().hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+
+        Assertions.assertEquals(
+            jsonArray.point(".[3].ListMap[*].id3[*][*].id33.id333").get(true).asList().hashCode(),
+            new ArrayList<>() {
+                {
+                    add(null);
+                }
+            }
+                .hashCode()
+        );
+    }
+
     void assertError(Runnable exec, String errorMessage) {
         try {
             exec.run();

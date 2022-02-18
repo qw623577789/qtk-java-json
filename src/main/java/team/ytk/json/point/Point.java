@@ -55,13 +55,17 @@ public class Point {
         );
     }
 
-    public Get get(boolean toWithDefault, boolean supportNullishKey) {
+    public Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable) {
         return new Get(this.instance, this.defaultValueMapper)
-        .get(this.breakcrumb, this.point, toWithDefault, supportNullishKey);
+        .get(this.breakcrumb, this.point, toWithDefault, supportNullishKey, nullable);
     }
 
     public Get get() {
-        return get(true, true);
+        return get(true, true, false);
+    }
+
+    public Get get(boolean nullable) {
+        return get(true, true, nullable);
     }
 
     public JSON put(String id, Object value) {
@@ -75,7 +79,7 @@ public class Point {
     public JSON put(String id, JsonNode value) {
         String absouleBreakcrumb = this.breakcrumb + this.point;
 
-        Get pointValue = get(false, false);
+        Get pointValue = get(false, false, false);
 
         if (absouleBreakcrumb.contains("[*]")) {
             pointValue
@@ -99,7 +103,7 @@ public class Point {
     }
 
     public boolean has(boolean toWithDefault) {
-        Get result = get(toWithDefault, false);
+        Get result = get(toWithDefault, false, false);
         return result.isArray()
             ? (
                 result.size() == 0 //空数组也算has
@@ -158,7 +162,7 @@ public class Point {
         if (parentPointKey.equals("")) parentPointKey = ".";
 
         Get parentNode = new Get(this.instance, this.defaultValueMapper);
-        parentNode.get("", parentPointKey, true, false);
+        parentNode.get("", parentPointKey, true, false, false);
 
         String finalLastPointKey = lastPointKey;
 
@@ -191,7 +195,7 @@ public class Point {
     }
 
     public JSON add(Object... items) {
-        Get pointValue = get(false, false);
+        Get pointValue = get(false, false, false);
 
         String absouleBreakcrumb = this.breakcrumb + this.point;
 

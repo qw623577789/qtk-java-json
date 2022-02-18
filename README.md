@@ -40,7 +40,7 @@ dependencies {
 - Point操作
     - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性**)
         - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、**Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\> itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String, Object\> asMap()**、**size()**
-    - **Get get(boolean toWithDefault, boolean supportNullishKey)** 在上get方法基础上，可以控制**是否开启默认值**、**是否开启可选链**特性
+    - **Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable)** 在上get方法基础上，可以控制**是否开启默认值**、**是否开启可选链**特性, ``nullable``控制当最终结果不存在时，**是否返回null，否则在没有可选链标注情况下，会抛空指针错误**,*此属性等同于给point每个节点加上可选链标志*
     - **JSON put(String id, Object value)** 给对应point的JSON对象节点赋值，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
     - **JSON add(Object... items)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
     - **JSON concat(List\<Object\> list)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
