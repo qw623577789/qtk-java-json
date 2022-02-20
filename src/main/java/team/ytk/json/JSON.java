@@ -114,6 +114,14 @@ public class JSON {
         return this.json;
     }
 
+    public static JSON missingNode() {
+        return new JSON(jackson.missingNode());
+    }
+
+    public static JSON nullNode() {
+        return new JSON(jackson.nullNode());
+    }
+
     public String toString() {
         return this.json.toString();
     }

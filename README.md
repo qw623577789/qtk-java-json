@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:1.1.0'
+    implementation 'com.github.qw623577789:ytk-json:v1.2.0'
 }
 ```
 
@@ -27,6 +27,8 @@ dependencies {
 - **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例
 - **String toString()** 将JSON实例转换为JSON字符串
 - **JSON deepCopy()** 深拷贝JSON实例
+- **JSON missingNode()** 快速创建``missing``值的JSON实例
+- **JSON nullNode()** 快速创建``null``值的JSON实例
 - **JsonNode getJacksonNode()** 将JSON实例转换为com.fasterxml.jackson的``JsonNode``
 - **JSON sPut(String id, Object value)** *静态方法*,　用于创建**JSON对象实例**,并设置key/value, value支持*大部分Java对象*及*JSON实例*
 - **JSON put(String id, Object value)** 在**JSON对象实例**上设置key/value, value支持*大部分Java对象*及*JSON实例*
@@ -47,8 +49,12 @@ dependencies {
     - **boolean has()** 判断point对应节点值有没有存在(*默认会开启默认值特性*)
     - **boolean has(boolean toWithDefault)** 判断point对应节点值有没有存在,可设定启不启用*默认值特性*
     - **JSON delete()** 删除point节点的值
+    - **JSON backToJSON()** 返回``Point``实例所在的``JSON``实例
     - **Point defaultValue(Object defaultValue)/Point defaultValue(HashMap\<String, Object\> defaultValueMap)** 设置节点默认值
     - **Point point(String point)** 在原来Point上在延伸point, 例如: point(".aaa.bbb")等同于point(".aaa").point(".bbb"),此特性用于支持point节点分级
+    - **boolean isArray()** 返回point节点是否为数组节点
+    - **boolean isNull()** 返回point节点是否为Null节点
+    - **boolean isMissing()** 返回point节点是否为Missing节点
 
 
 ## Usage

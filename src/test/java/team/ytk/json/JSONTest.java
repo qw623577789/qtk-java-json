@@ -1943,4 +1943,13 @@ class JSONTest {
             "fix"
         );
     }
+
+    @Test
+    void sugar() {
+        Assertions.assertEquals(JSON.nullNode().point().get().asNull(), null);
+        
+        Assertions.assertEquals(JSON.nullNode().point().get().isNull(), true);
+
+        Assertions.assertEquals(JSON.missingNode().point().get().isMissing(), true);
+    }
 }

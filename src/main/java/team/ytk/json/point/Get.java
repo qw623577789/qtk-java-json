@@ -59,6 +59,15 @@ public class Get {
         return valueNode.isArray();
     }
 
+    public boolean isNull() {
+        return valueNode.isNull();
+    }
+
+
+    public boolean isMissing() {
+        return valueNode.isMissingNode();
+    }
+
     public Get get(
         String breadcrumb,
         String point,

@@ -284,6 +284,14 @@ public class Point {
         return this.instance.toString();
     }
 
+    /**
+     * 获取Point所属的JSON实例
+     * @return
+     */
+    public JSON backToJSON() {
+        return this.jsonHelper;
+    }
+
     @Builder
     @Data
     public static class DefaultType {
