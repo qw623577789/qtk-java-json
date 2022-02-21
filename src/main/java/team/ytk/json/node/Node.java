@@ -40,6 +40,10 @@ public class Node {
         return this.jacksonNode.isObject();
     }
 
+    public boolean isEmpty() {
+        return this.jacksonNode.isEmpty();
+    }
+
     public Stream<Node> stream() {
         throw new RuntimeException("非数组禁止使用此方法");
     }

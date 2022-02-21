@@ -55,6 +55,7 @@ dependencies {
     - **boolean isArray()** 返回point节点是否为数组节点
     - **boolean isNull()** 返回point节点是否为Null节点
     - **boolean isMissing()** 返回point节点是否为Missing节点
+    - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
 
 
 ## Usage

@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import team.ytk.json.JSON;
 import team.ytk.json.node.ArrayNode;
 import team.ytk.json.node.Node;
 import team.ytk.json.point.Point.DefaultType;
@@ -63,9 +64,12 @@ public class Get {
         return valueNode.isNull();
     }
 
-
     public boolean isMissing() {
         return valueNode.isMissingNode();
+    }
+
+    public boolean isEmpty() {
+        return valueNode.isEmpty();
     }
 
     public Get get(
@@ -390,6 +394,10 @@ public class Get {
         }
 
         if (!valueNode.isArray()) throw new RuntimeException("最终节点非数组节点");
+
+        if (itemType == JSON.class) return this.valueNode.stream()
+            .map(item -> (T) JSON.parse(item.getJacksonNode()))
+            .collect(Collectors.toList());
 
         ArrayList<T> list = new ArrayList<>();
         valueNode

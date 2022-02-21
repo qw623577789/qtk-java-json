@@ -46,9 +46,10 @@ public class Point {
     }
 
     public Point point(String point) {
+        String newBreakcrumb = this.breakcrumb + this.point;
         return new Point(
             point,
-            this.breakcrumb + this.point,
+            newBreakcrumb.equals(".") ? "" : newBreakcrumb,
             this.defaultValueMapper,
             this.instance,
             this.jsonHelper
