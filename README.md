@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.3.0'
+    implementation 'com.github.qw623577789:ytk-json:v1.3.1'
 }
 ```
 
