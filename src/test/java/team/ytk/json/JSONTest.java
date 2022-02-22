@@ -6,6 +6,10 @@ package team.ytk.json;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -1951,5 +1955,9 @@ class JSONTest {
         Assertions.assertEquals(JSON.nullNode().point().get().isNull(), true);
 
         Assertions.assertEquals(JSON.missingNode().point().get().isMissing(), true);
+
+        Assertions.assertTrue(JSON.parse("qqq").getJacksonNode() instanceof TextNode);
+
+        Assertions.assertTrue(JSON.parse("{\"a\":1}").getJacksonNode() instanceof ObjectNode);
     }
 }

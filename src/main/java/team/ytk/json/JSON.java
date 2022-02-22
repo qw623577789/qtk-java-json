@@ -40,7 +40,10 @@ public class JSON {
     @SneakyThrows
     public static JSON parse(Object object) {
         if (object instanceof String) {
-            return new JSON(jackson.readTree((String) object));
+            String string = (String) object;
+            return string.startsWith("{") && string.endsWith("}")
+                ? new JSON(jackson.readTree(string))
+                : new JSON(jackson.valueToTree(object).deepCopy());
         } else {
             return new JSON(jackson.valueToTree(object).deepCopy());
         }
