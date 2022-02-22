@@ -282,10 +282,6 @@ public class Point {
         return this;
     }
 
-    public String toString() {
-        return this.instance.toString();
-    }
-
     /**
      * 获取Point所属的JSON实例
      * @return

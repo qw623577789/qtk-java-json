@@ -312,6 +312,10 @@ public class Get {
         );
     }
 
+    public String toString() {
+        return this.valueNode.getJacksonNode().toString();
+    }
+
     public String asString() {
         return as(String.class);
     }
@@ -342,6 +346,10 @@ public class Get {
 
     public Float asFloat() {
         return as(Float.class);
+    }
+
+    public JSON asJSON() {
+        return JSON.parse(this.valueNode.getJacksonNode());
     }
 
     public <T> T as(Class<T> type) {

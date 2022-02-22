@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.3.1'
+    implementation 'com.github.qw623577789:ytk-json:v1.4.0'
 }
 ```
 
@@ -41,7 +41,7 @@ dependencies {
 - **Point point(String point, HashMap<String, Object> defaultValueMap)** 在**Point point(String point)**基础上，可为``第一个参数的point``路径批量设置默认值(point=".aaa.bbb.ccc", 可先设置.aaa = 对象，再设置.aaa.bbb = 对象)，在``get``、``has``操作时，若**节点不存在**时．**执行函数/直接**返回默认值
 - Point操作
     - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性**)
-        - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、**Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\> itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String, Object\> asMap()**、**size()**
+        - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、**Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\> itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String, Object\> asMap()**、**JSON asJSON()**、**size()**
     - **Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable)** 在上get方法基础上，可以控制**是否开启默认值**、**是否开启可选链**特性, ``nullable``控制当最终结果不存在时，**是否返回null，否则在没有可选链标注情况下，会抛空指针错误**,*此属性等同于给point每个节点加上可选链标志*
     - **JSON put(String id, Object value)** 给对应point的JSON对象节点赋值，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
     - **JSON add(Object... items)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
@@ -56,6 +56,7 @@ dependencies {
     - **boolean isNull()** 返回point节点是否为Null节点
     - **boolean isMissing()** 返回point节点是否为Missing节点
     - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
+    - **String toString()** 将Point实例转换为JSON字符串
 
 
 ## Usage
