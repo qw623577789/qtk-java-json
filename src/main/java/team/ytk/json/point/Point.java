@@ -70,14 +70,15 @@ public class Point {
     }
 
     public JSON put(String id, Object value) {
-        return put(id, jackson.valueToTree(value));
-    }
+        JsonNode jacksonNode;
+        if (value instanceof JSON) {
+            jacksonNode = ((JSON) value).getJacksonNode();
+        } else if (value instanceof JsonNode) {
+            jacksonNode = (JsonNode) value;
+        } else {
+            jacksonNode = jackson.valueToTree(value);
+        }
 
-    public JSON put(String id, JSON value) {
-        return put(id, value.getJacksonNode());
-    }
-
-    public JSON put(String id, JsonNode value) {
         String absouleBreakcrumb = this.breakcrumb + this.point;
 
         Get pointValue = get(false, false, false);
@@ -88,12 +89,12 @@ public class Point {
                 .stream()
                 .forEach(
                     operaNode -> {
-                        operaNode.set(id, value.deepCopy());
+                        operaNode.set(id, jacksonNode.deepCopy());
                     }
                 );
         } else {
             Node operaNode = pointValue.getValueNode();
-            operaNode.set(id, value.deepCopy());
+            operaNode.set(id, jacksonNode.deepCopy());
         }
 
         return this.jsonHelper;
