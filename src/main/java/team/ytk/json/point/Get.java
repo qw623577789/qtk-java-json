@@ -72,6 +72,10 @@ public class Get {
         return valueNode.isEmpty();
     }
 
+    public boolean isObject() {
+        return valueNode.isObject();
+    }
+
     public Get get(
         String breadcrumb,
         String point,

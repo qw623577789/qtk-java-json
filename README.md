@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.4.1'
+    implementation 'com.github.qw623577789:ytk-json:v1.5.0'
 }
 ```
 
@@ -53,6 +53,7 @@ dependencies {
     - **Point defaultValue(Object defaultValue)/Point defaultValue(HashMap\<String, Object\> defaultValueMap)** 设置节点默认值
     - **Point point(String point)** 在原来Point上在延伸point, 例如: point(".aaa.bbb")等同于point(".aaa").point(".bbb"),此特性用于支持point节点分级
     - **boolean isArray()** 返回point节点是否为数组节点
+    - **boolean isObject()** 返回point节点是否为对象节点
     - **boolean isNull()** 返回point节点是否为Null节点
     - **boolean isMissing()** 返回point节点是否为Missing节点
     - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
