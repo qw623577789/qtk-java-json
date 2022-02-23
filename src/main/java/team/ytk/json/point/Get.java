@@ -317,7 +317,13 @@ public class Get {
     }
 
     public String toString() {
-        return this.valueNode.getJacksonNode().toString();
+        return this.toString(false);
+    }
+
+    public String toString(boolean pretty) {
+        return pretty
+            ? this.valueNode.getJacksonNode().toPrettyString()
+            : this.valueNode.getJacksonNode().toString();
     }
 
     public String asString() {

@@ -126,6 +126,10 @@ public class JSON {
     }
 
     public String toString() {
-        return this.json.toString();
+        return this.toString(false);
+    }
+
+    public String toString(boolean pretty) {
+        return pretty ? this.json.toPrettyString() : this.json.toString();
     }
 }

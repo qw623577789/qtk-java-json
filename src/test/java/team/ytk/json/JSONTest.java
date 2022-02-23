@@ -3,13 +3,11 @@
  */
 package team.ytk.json;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -1951,7 +1949,7 @@ class JSONTest {
     @Test
     void sugar() {
         Assertions.assertEquals(JSON.nullNode().point().get().asNull(), null);
-        
+
         Assertions.assertEquals(JSON.nullNode().point().get().isNull(), true);
 
         Assertions.assertEquals(JSON.missingNode().point().get().isMissing(), true);
@@ -1959,5 +1957,13 @@ class JSONTest {
         Assertions.assertTrue(JSON.parse("qqq").getJacksonNode() instanceof TextNode);
 
         Assertions.assertTrue(JSON.parse("{\"a\":1}").getJacksonNode() instanceof ObjectNode);
+
+        System.out.println(
+            JSON
+                .parse(
+                    "{\"int\":1,\"string\":\"2\",\"float\":2.5,\"double\":2.5,\"BigDecimal\":1,\"boolean\":false,\"null\":null,\"map\":{\"a\":\"1\",\"b\":\"2\"},\"JSON.Map\":{\"m1\":\"1\",\"m2\":\"2\"},\"List\":[\"1\",\"2\"],\"JSON.List\":[1,2,4,5,[6,7]]}"
+                )
+                .toString(true)
+        );
     }
 }
