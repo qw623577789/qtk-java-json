@@ -3,6 +3,7 @@
  */
 package team.ytk.json;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import java.math.BigDecimal;
@@ -2795,6 +2796,8 @@ class JSONTest {
         Assertions.assertTrue(JSON.parse("qqq").getJacksonNode() instanceof TextNode);
 
         Assertions.assertTrue(JSON.parse("{\"a\":1}").getJacksonNode() instanceof ObjectNode);
+
+        Assertions.assertTrue(JSON.parse("[{\"a\":1}]").getJacksonNode() instanceof ArrayNode);
 
         System.out.println(
             JSON
