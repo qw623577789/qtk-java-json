@@ -188,7 +188,7 @@ public class Get {
                     Node subNode = null;
 
                     if (!node.has(realKey)) { // 节点不存在
-                        if (toWithDefault) subNode = fixValueWithDefault(subNodePath);
+                        if (toWithDefault) subNode = fixValueWithDefault(subNodePath, node, realKey);
                         if (toWithDefault == false || subNode.isMissingNode()) {
                             if (hasNullishKey) {
                                 collection.add(Node.createNullNode(subNodePath));
@@ -272,7 +272,12 @@ public class Get {
 
                                         Node subNode = null;
                                         if (!node.has(Integer.parseInt(arrayIndex))) {
-                                            if (toWithDefault) subNode = fixValueWithDefault(subNodePath);
+                                            if (toWithDefault) subNode =
+                                                fixValueWithDefault(
+                                                    subNodePath,
+                                                    node,
+                                                    "[" + arrayIndex + "]"
+                                                );
                                             if (toWithDefault == false || subNode.isMissingNode()) {
                                                 subNode =
                                                     hasNullishKey
@@ -296,7 +301,7 @@ public class Get {
             );
     }
 
-    private Node fixValueWithDefault(String nodePath) {
+    private Node fixValueWithDefault(String nodePath, Node node, String fieldName) {
         DefaultType defaultType =
             this.regexpDefaultValueMapper.entrySet()
                 .stream()
@@ -308,12 +313,32 @@ public class Get {
         if (defaultType == null) return Node.createMissingNode(nodePath);
 
         Object defaultValue = defaultType.getValue();
-        return Node.gen(
-            jackson.valueToTree(
-                defaultValue instanceof Supplier ? ((Supplier) defaultValue).get() : defaultValue
-            ),
-            nodePath
-        );
+        if (defaultValue instanceof Supplier) defaultValue = ((Supplier) defaultValue).get();
+
+        JsonNode jacksonNode;
+        if (defaultValue instanceof JSON) {
+            jacksonNode = ((JSON) defaultValue).getJacksonNode().deepCopy();
+        } else if (defaultValue instanceof JsonNode) {
+            jacksonNode = ((JsonNode) defaultValue).deepCopy();
+        } else {
+            jacksonNode = jackson.valueToTree(defaultValue);
+        }
+
+        Node fixNode = Node.gen(jacksonNode, nodePath);
+
+        if (defaultType.isToUpdateNode()) {
+            if (node.isObject()) {
+                node.set(fieldName, jacksonNode);
+            } else if (node.isArray()) {
+                ((ArrayNode) node).add(jacksonNode);
+            } else {
+                throw new RuntimeException(
+                    "不支持" + node.getJacksonNode().getNodeType().name() + "补充默认值"
+                );
+            }
+        }
+
+        return fixNode;
     }
 
     public String toString() {

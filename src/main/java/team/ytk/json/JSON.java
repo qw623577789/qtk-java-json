@@ -58,9 +58,19 @@ public class JSON {
         .defaultValue(defaultValue);
     }
 
+    public Point point(String point, Supplier<Object> defaultValue, boolean toUpdateNode) {
+        return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
+        .defaultValue(defaultValue, toUpdateNode);
+    }
+
     public Point point(String point, Object defaultValue) {
         return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
         .defaultValue(defaultValue);
+    }
+
+    public Point point(String point, Object defaultValue, boolean toUpdateNode) {
+        return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
+        .defaultValue(defaultValue, toUpdateNode);
     }
 
     public Point point() {

@@ -100,6 +100,42 @@ public class Point {
         return this.jsonHelper;
     }
 
+    public JSON put(Object value) {
+        JsonNode jacksonNode;
+        if (value instanceof JSON) {
+            jacksonNode = ((JSON) value).getJacksonNode();
+        } else if (value instanceof JsonNode) {
+            jacksonNode = (JsonNode) value;
+        } else {
+            jacksonNode = jackson.valueToTree(value);
+        }
+
+        String absouleBreakcrumb = this.breakcrumb + this.point;
+
+        Object[] parentKeyInfo = this.getParentPointKey(absouleBreakcrumb);
+        String parentPointKey = (String) parentKeyInfo[0];
+        String lastPointKey = (String) parentKeyInfo[1];
+
+        Get parentNode = new Get(this.instance, this.defaultValueMapper);
+        parentNode.get("", parentPointKey, true, false, false);
+
+        if (absouleBreakcrumb.contains("[*]")) {
+            parentNode
+                .getValueNode()
+                .stream()
+                .forEach(
+                    operaNode -> {
+                        operaNode.set(lastPointKey, jacksonNode.deepCopy());
+                    }
+                );
+        } else {
+            Node operaNode = parentNode.getValueNode();
+            operaNode.set(lastPointKey, jacksonNode.deepCopy());
+        }
+
+        return this.jsonHelper;
+    }
+
     public boolean has() {
         return has(true);
     }
@@ -115,9 +151,7 @@ public class Point {
             : !result.getValueNode().isMissingNode();
     }
 
-    public JSON delete() {
-        String absouleBreakcrumb = this.breakcrumb + this.point;
-
+    private Object[] getParentPointKey(String absouleBreakcrumb) {
         List<String> keys = Pattern
             .compile("\\.\".*?\"|\\..*?(?=\\.)|\\..*$") //匹配　."匹配内容"、.匹配内容.、.匹配内容
             .matcher(absouleBreakcrumb)
@@ -163,10 +197,23 @@ public class Point {
         String parentPointKey = parentPointKeyStage.stream().collect(Collectors.joining(""));
         if (parentPointKey.equals("")) parentPointKey = ".";
 
-        Get parentNode = new Get(this.instance, this.defaultValueMapper);
-        parentNode.get("", parentPointKey, true, false, false);
+        return new Object[] { parentPointKey, lastPointKey, isArrayKey };
+    }
+
+    public JSON delete() {
+        String absouleBreakcrumb = this.breakcrumb + this.point;
+
+        Object[] parentKeyInfo = this.getParentPointKey(absouleBreakcrumb);
+        String parentPointKey = (String) parentKeyInfo[0];
+        String lastPointKey = (String) parentKeyInfo[1];
+
+        // 是否为纯数组节点
+        boolean isArrayKey = (boolean) parentKeyInfo[2];
 
         String finalLastPointKey = lastPointKey;
+
+        Get parentNode = new Get(this.instance, this.defaultValueMapper);
+        parentNode.get("", parentPointKey, true, false, false);
 
         if (parentPointKey.contains("[*]")) {
             final boolean isArrayKeyFinally = isArrayKey;
@@ -249,18 +296,31 @@ public class Point {
         return add(list.toArray());
     }
 
-    public Point defaultValue(Supplier<Object> defaultValueFunc) {
-        return defaultValue((Object) defaultValueFunc);
+    public Point defaultValue(Supplier<Object> defaultValueFunc, boolean toUpdateNode) {
+        return defaultValue((Object) defaultValueFunc, toUpdateNode);
     }
 
-    public Point defaultValue(Object defaultValue) {
-        DefaultType def = DefaultType.builder().value(defaultValue).build();
+    public Point defaultValue(Supplier<Object> defaultValueFunc) {
+        return defaultValue((Object) defaultValueFunc, false);
+    }
+
+    public Point defaultValue(Object defaultValue, boolean toUpdateNode) {
+        DefaultType def = DefaultType.builder().value(defaultValue).toUpdateNode(toUpdateNode).build();
         this.defaultValueMapper.put((this.breakcrumb + this.point).replaceAll("\"", ""), def);
         return this;
     }
 
+    public Point defaultValue(Object defaultValue) {
+        return defaultValue(defaultValue, false);
+    }
+
     // default的point必须为point本体子集
     public Point defaultValue(HashMap<String, ?> defaultValueMap) {
+        return defaultValue((HashMap) defaultValueMap, false);
+    }
+
+    // default的point必须为point本体子集
+    public Point defaultValue(HashMap<String, ?> defaultValueMap, boolean toUpdateNode) {
         defaultValueMap
             .entrySet()
             .stream()
@@ -275,7 +335,7 @@ public class Point {
                     String absolutePath = (this.breakcrumb + pointPath).replaceAll("\"", "");
                     this.defaultValueMapper.put(
                             absolutePath,
-                            DefaultType.builder().value(item.getValue()).build()
+                            DefaultType.builder().value(item.getValue()).toUpdateNode(toUpdateNode).build()
                         );
                 }
             );
@@ -295,5 +355,8 @@ public class Point {
     public static class DefaultType {
 
         private Object value;
+
+        @Builder.Default
+        private boolean toUpdateNode = false;
     }
 }

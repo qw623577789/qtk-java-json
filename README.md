@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.6.0'
+    implementation 'com.github.qw623577789:ytk-json:v1.7.0'
 }
 ```
 
@@ -36,21 +36,22 @@ dependencies {
 - **JSON add(Object ...value)** 在**JSON数组实例**上一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
 - **JSON concat(List<?> list)** 在**JSON数组实例**上添加存于``List``的元素，value支持*大部分Java对象*及*JSON实例*
 - **Point point(String point)** 根据JSON路径(例如 \.aaa.bbb[0].ccc[*].ddd)返回一个``Point``对象，用于对节点进行``get``、``put``、``delete``、``has``、``add``、``concat``操作
-- **Point point(String point, Object defaultValue)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．返回默认值
-- **Point point(String point, Supplier\<Object\> defaultValueFunc)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．执行函数返回默认值
-- **Point point(String point, HashMap<String, Object> defaultValueMap)** 在**Point point(String point)**基础上，可为``第一个参数的point``路径批量设置默认值(point=".aaa.bbb.ccc", 可先设置.aaa = 对象，再设置.aaa.bbb = 对象)，在``get``、``has``操作时，若**节点不存在**时．**执行函数/直接**返回默认值
+- **Point point(String point, Object defaultValue, boolean toUpdateNode)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．返回默认值; **``toUpdateNode``默认值为``false``,即使用默认值时不会更改原来对象的值,　设为true后，若节点不存在，则会修改JSON实例，将默认值补上**
+- **Point point(String point, Supplier\<Object\> defaultValueFunc, boolean toUpdateNode)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．执行函数返回默认值
+- **Point point(String point, HashMap<String, Object> defaultValueMap, boolean toUpdateNode)** 在**Point point(String point)**基础上，可为``第一个参数的point``路径批量设置默认值(point=".aaa.bbb.ccc", 可先设置.aaa = 对象，再设置.aaa.bbb = 对象)，在``get``、``has``操作时，若**节点不存在**时．**执行函数/直接**返回默认值
 - Point操作
     - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性**)
         - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、**Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\> itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String, Object\> asMap()**、**JSON asJSON()**、**size()**
     - **Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable)** 在上get方法基础上，可以控制**是否开启默认值**、**是否开启可选链**特性, ``nullable``控制当最终结果不存在时，**是否返回null，否则在没有可选链标注情况下，会抛空指针错误**,*此属性等同于给point每个节点加上可选链标志*
     - **JSON put(String id, Object value)** 给对应point的JSON对象节点赋值，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
+    - **JSON put(Object value)** 给对应point的JSON对象节点赋值(**节点名在point里**)，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
     - **JSON add(Object... items)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
     - **JSON concat(List\<Object\> list)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、**com.fasterxml.jackson的``JsonNode``**
     - **boolean has()** 判断point对应节点值有没有存在(*默认会开启默认值特性*)
     - **boolean has(boolean toWithDefault)** 判断point对应节点值有没有存在,可设定启不启用*默认值特性*
     - **JSON delete()** 删除point节点的值
     - **JSON backToJSON()** 返回``Point``实例所在的``JSON``实例
-    - **Point defaultValue(Object defaultValue)/Point defaultValue(HashMap\<String, Object\> defaultValueMap)** 设置节点默认值
+    - **Point defaultValue(Object defaultValue, boolean toUpdateNode)/Point defaultValue(HashMap\<String, Object\> defaultValueMap, boolean toUpdateNode)** 设置节点默认值，``toUpdateNode``含义见上面有相同说明
     - **Point point(String point)** 在原来Point上在延伸point, 例如: point(".aaa.bbb")等同于point(".aaa").point(".bbb"),此特性用于支持point节点分级
     - **boolean isArray()** 返回point节点是否为数组节点
     - **boolean isObject()** 返回point节点是否为对象节点
