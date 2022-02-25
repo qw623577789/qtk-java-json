@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.7.1'
+    implementation 'com.github.qw623577789:ytk-json:v1.8.0'
 }
 ```
 
@@ -25,7 +25,7 @@ dependencies {
 - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
 - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
 - **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例
-- **String toString(boolean pretty)** 将JSON实例转换为JSON字符串, ``pretty``控制是否美化输出json
+- **String toString(boolean pretty, int spaceAmount)** 将JSON实例转换为JSON字符串, ``pretty``控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
 - **JSON deepCopy()** 深拷贝JSON实例
 - **JSON missingNode()** 快速创建``missing``值的JSON实例
 - **JSON nullNode()** 快速创建``null``值的JSON实例
@@ -58,7 +58,7 @@ dependencies {
     - **boolean isNull()** 返回point节点是否为Null节点
     - **boolean isMissing()** 返回point节点是否为Missing节点
     - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
-    - **String toString(boolean pretty)** 将Point实例转换为JSON字符串, ``pretty``控制是否美化输出json
+    - **String toString(boolean pretty, int spaceAmount)** 将Point实例转换为JSON字符串, ``pretty``控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
 
 
 ## Usage

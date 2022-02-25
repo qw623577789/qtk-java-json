@@ -1,8 +1,10 @@
 package team.ytk.json;
 
+import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,7 +16,9 @@ import team.ytk.json.point.Point.DefaultType;
 
 public class JSON {
 
-    private static ObjectMapper jackson = new ObjectMapper();
+    public static ObjectMapper jackson = new ObjectMapper()
+    .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true)); //修复bigDecimal 1.0 转化后丢失.0问题
+
     private JsonNode json;
 
     public JSON(JsonNode jacksonNode) {
@@ -41,7 +45,10 @@ public class JSON {
     public static JSON parse(Object object) {
         if (object instanceof String) {
             String string = (String) object;
-            return (string.startsWith("{") && string.endsWith("}")) || (string.startsWith("[") && string.endsWith("]"))
+            return (
+                    (string.startsWith("{") && string.endsWith("}")) ||
+                    (string.startsWith("[") && string.endsWith("]"))
+                )
                 ? new JSON(jackson.readTree(string))
                 : new JSON(jackson.valueToTree(object).deepCopy());
         } else {
@@ -135,11 +142,21 @@ public class JSON {
         return new JSON(jackson.nullNode());
     }
 
+    public String toString(boolean pretty) {
+        return this.toString(pretty, 4);
+    }
+
     public String toString() {
         return this.toString(false);
     }
 
-    public String toString(boolean pretty) {
-        return pretty ? this.json.toPrettyString() : this.json.toString();
+    @SneakyThrows
+    public String toString(boolean pretty, int spaceAmount) {
+        if (pretty) {
+            PrettyPrinter printer = new JsonStringifyPrettyPrinter(spaceAmount);
+            return jackson.writer(printer).writeValueAsString(this.json);
+        } else {
+            return this.json.toString();
+        }
     }
 }

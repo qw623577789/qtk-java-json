@@ -2802,9 +2802,13 @@ class JSONTest {
         System.out.println(
             JSON
                 .parse(
-                    "{\"int\":1,\"string\":\"2\",\"float\":2.5,\"double\":2.5,\"BigDecimal\":1,\"boolean\":false,\"null\":null,\"map\":{\"a\":\"1\",\"b\":\"2\"},\"JSON.Map\":{\"m1\":\"1\",\"m2\":\"2\"},\"List\":[\"1\",\"2\"],\"JSON.List\":[1,2,4,5,[6,7]]}"
+                    "[{\"map2\":\"2\",\"map1\":\"1\"},{\"map2\":\"22\",\"map1\":\"11\"}]"
                 )
                 .toString(true)
+        );
+
+        System.out.println(
+            JSON.parse(new BigDecimal("1.0"))
         );
     }
 }

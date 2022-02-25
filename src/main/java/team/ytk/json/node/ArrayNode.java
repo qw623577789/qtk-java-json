@@ -1,14 +1,12 @@
 package team.ytk.json.node;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 import lombok.Getter;
+import team.ytk.json.JSON;
 
 public class ArrayNode extends Node {
-
-    private static ObjectMapper jackson = new ObjectMapper();
 
     @Getter
     private ArrayList<Node> nodes = new ArrayList<Node>();
@@ -16,7 +14,7 @@ public class ArrayNode extends Node {
     public static ArrayNode create(String path) {
         ArrayNode arr = new ArrayNode();
         arr.path = path;
-        arr.jacksonNode = jackson.createArrayNode();
+        arr.jacksonNode = JSON.jackson.createArrayNode();
         return arr;
     }
 

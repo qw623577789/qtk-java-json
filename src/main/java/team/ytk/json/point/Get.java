@@ -1,7 +1,7 @@
 package team.ytk.json.point;
 
+import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,7 +10,9 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import team.ytk.json.JSON;
+import team.ytk.json.JsonStringifyPrettyPrinter;
 import team.ytk.json.node.ArrayNode;
 import team.ytk.json.node.Node;
 import team.ytk.json.point.Point.DefaultType;
@@ -22,8 +24,6 @@ public class Get {
     private Node valueNode;
 
     private HashMap<Pattern, DefaultType> regexpDefaultValueMapper = new HashMap<>();
-
-    private static ObjectMapper jackson = new ObjectMapper();
 
     private boolean nullable = false;
 
@@ -321,7 +321,7 @@ public class Get {
         } else if (defaultValue instanceof JsonNode) {
             jacksonNode = ((JsonNode) defaultValue).deepCopy();
         } else {
-            jacksonNode = jackson.valueToTree(defaultValue);
+            jacksonNode = JSON.jackson.valueToTree(defaultValue);
         }
 
         Node fixNode = Node.gen(jacksonNode, nodePath);
@@ -341,14 +341,22 @@ public class Get {
         return fixNode;
     }
 
+    public String toString(boolean pretty) {
+        return this.toString(pretty, 4);
+    }
+
     public String toString() {
         return this.toString(false);
     }
 
-    public String toString(boolean pretty) {
-        return pretty
-            ? this.valueNode.getJacksonNode().toPrettyString()
-            : this.valueNode.getJacksonNode().toString();
+    @SneakyThrows
+    public String toString(boolean pretty, int spaceAmount) {
+        if (pretty) {
+            PrettyPrinter printer = new JsonStringifyPrettyPrinter(spaceAmount);
+            return JSON.jackson.writer(printer).writeValueAsString(this.valueNode.getJacksonNode());
+        } else {
+            return this.valueNode.getJacksonNode().toString();
+        }
     }
 
     public String asString() {
@@ -395,7 +403,9 @@ public class Get {
                 throw new NullPointerException(this.valueNode.getPath() + " is missing");
             }
         }
-        return this.valueNode.isNull() ? null : jackson.convertValue(this.valueNode.getJacksonNode(), type);
+        return this.valueNode.isNull()
+            ? null
+            : JSON.jackson.convertValue(this.valueNode.getJacksonNode(), type);
     }
 
     public List<Object> asList() {
@@ -448,7 +458,7 @@ public class Get {
             .elements()
             .forEachRemaining(
                 item -> {
-                    if (!item.isMissingNode()) list.add(jackson.convertValue(item, itemType));
+                    if (!item.isMissingNode()) list.add(JSON.jackson.convertValue(item, itemType));
                 }
             );
         return list;
@@ -473,7 +483,7 @@ public class Get {
             .getJacksonNode()
             .fields()
             .forEachRemaining(
-                entry -> map.put(entry.getKey(), jackson.convertValue(entry.getValue(), valueType))
+                entry -> map.put(entry.getKey(), JSON.jackson.convertValue(entry.getValue(), valueType))
             );
 
         return map;

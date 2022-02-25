@@ -1,7 +1,6 @@
 package team.ytk.json.point;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -24,8 +23,6 @@ public class Point {
     private JsonNode instance;
 
     private JSON jsonHelper;
-
-    private static ObjectMapper jackson = new ObjectMapper();
 
     @Getter
     @Setter
@@ -76,7 +73,7 @@ public class Point {
         } else if (value instanceof JsonNode) {
             jacksonNode = (JsonNode) value;
         } else {
-            jacksonNode = jackson.valueToTree(value);
+            jacksonNode = JSON.jackson.valueToTree(value);
         }
 
         String absouleBreakcrumb = this.breakcrumb + this.point;
@@ -107,7 +104,7 @@ public class Point {
         } else if (value instanceof JsonNode) {
             jacksonNode = (JsonNode) value;
         } else {
-            jacksonNode = jackson.valueToTree(value);
+            jacksonNode = JSON.jackson.valueToTree(value);
         }
 
         String absouleBreakcrumb = this.breakcrumb + this.point;
@@ -265,7 +262,7 @@ public class Point {
                                     } else if (item instanceof JsonNode) {
                                         operaNode.add(((JsonNode) item).deepCopy());
                                     } else {
-                                        operaNode.add(jackson.valueToTree(item));
+                                        operaNode.add(JSON.jackson.valueToTree(item));
                                     }
                                 }
                             );
@@ -283,7 +280,7 @@ public class Point {
                         } else if (item instanceof JsonNode) {
                             operaNode.add(((JsonNode) item).deepCopy());
                         } else {
-                            operaNode.add(jackson.valueToTree(item));
+                            operaNode.add(JSON.jackson.valueToTree(item));
                         }
                     }
                 );
