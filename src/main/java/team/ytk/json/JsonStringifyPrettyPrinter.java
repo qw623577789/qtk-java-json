@@ -2,33 +2,10 @@ package team.ytk.json;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.PrettyPrinter;
-
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Stack;
 
-/**
- * Google Chrome における JSON.stringify() に近い pretty print を実現します。
- * <p>
- * このオブジェクトはスレッドセーフではありません。
- * </p>
- *
- * @author KOMIYA Atsushi
- * @see https://gist.github.com/komiya-atsushi/832a97c84ccae7cdfc2a
- */
 public class JsonStringifyPrettyPrinter implements PrettyPrinter {
-    enum State {
-        ROOT_VALUE_SEPARATOR,
-        START_OBJECT,
-        END_OBJECT,
-        OBJECT_ENTRY_SEPARATOR,
-        OBJECT_FIELD_VALUES_SEPARATOR,
-        START_ARRAY,
-        END_ARRAY,
-        ARRAY_VALUE_SEPARATOR,
-        BEFORE_ARRAY_VALUES,
-        BEFORE_OBJECT_ENTRIES
-    }
 
     private static final String LINE_SEPARATOR = System.lineSeparator();
     private static final char[] SPACES = new char[128];
@@ -39,115 +16,99 @@ public class JsonStringifyPrettyPrinter implements PrettyPrinter {
 
     private final int numSpacesPerIndent;
     private int indentLevel;
-    private State lastState;
-    private Stack<Boolean> listContainsLiteralOnly = new Stack<>();
 
-    /**
-     * インデントのときのスペース個数を指定して、JsonStringifyPrettyPrinter オブジェクトを生成します。
-     *
-     * @param numSpacesPerIndent インデントのときのスペース個数を指定します
-     */
     public JsonStringifyPrettyPrinter(int numSpacesPerIndent) {
         this.numSpacesPerIndent = numSpacesPerIndent;
     }
 
     private void indent(JsonGenerator jg) throws IOException {
-        jg.writeRaw(LINE_SEPARATOR);
-
-        int numSpacesToBeOutput = indentLevel * numSpacesPerIndent;
-        while (numSpacesToBeOutput > SPACES.length) {
-            jg.writeRaw(SPACES, 0, SPACES.length);
-            numSpacesToBeOutput -= SPACES.length;
-        }
-
-        jg.writeRaw(SPACES, 0, numSpacesToBeOutput);
+        jg.writeRaw(SPACES, 0, indentLevel * numSpacesPerIndent);
     }
 
     @Override
-    public void writeRootValueSeparator(JsonGenerator jg) throws IOException {
-        lastState = State.ROOT_VALUE_SEPARATOR;
-    }
+    public void writeRootValueSeparator(JsonGenerator jg) throws IOException {}
 
+    /**
+     * 准备开始输出对象时触发
+     */
     @Override
     public void writeStartObject(JsonGenerator jg) throws IOException {
-        if (lastState != State.OBJECT_FIELD_VALUES_SEPARATOR) {
-            indent(jg);
-        }
         jg.writeRaw("{");
+        jg.writeRaw(LINE_SEPARATOR);
         indentLevel++;
-
-        if (!listContainsLiteralOnly.empty() && listContainsLiteralOnly.peek()) {
-            listContainsLiteralOnly.pop();
-            listContainsLiteralOnly.push(false);
-        }
-
-        lastState = State.START_OBJECT;
-    }
-
-    @Override
-    public void writeEndObject(JsonGenerator jg, int nrOfEntries) throws IOException {
-        indentLevel--;
         indent(jg);
-        jg.writeRaw("}");
-
-        lastState = State.END_OBJECT;
     }
 
+    /**
+     * 输出对象第一个key前触发
+     */
     @Override
-    public void writeObjectEntrySeparator(JsonGenerator jg) throws IOException {
-        jg.writeRaw(",");
-        indent(jg);
+    public void beforeObjectEntries(JsonGenerator jg) throws IOException {}
 
-        lastState = State.OBJECT_ENTRY_SEPARATOR;
-    }
-
+    /**
+     * 对象key-value之间的分隔符
+     */
     @Override
     public void writeObjectFieldValueSeparator(JsonGenerator jg) throws IOException {
         jg.writeRaw(": ");
-
-        lastState = State.OBJECT_FIELD_VALUES_SEPARATOR;
     }
 
+    /**
+     * 对象每个值结束后的分割
+     */
+    @Override
+    public void writeObjectEntrySeparator(JsonGenerator jg) throws IOException {
+        jg.writeRaw(",");
+        jg.writeRaw(LINE_SEPARATOR);
+        indent(jg);
+    }
+
+    /**
+     * 输出对象最后一个value前触发
+     */
+    @Override
+    public void writeEndObject(JsonGenerator jg, int nrOfEntries) throws IOException {
+        jg.writeRaw(LINE_SEPARATOR);
+        indentLevel--;
+        indent(jg);
+        jg.writeRaw("}");
+    }
+
+    /**
+     * 准备开始输出数组时触发
+     */
     @Override
     public void writeStartArray(JsonGenerator jg) throws IOException {
-        if (lastState != State.OBJECT_FIELD_VALUES_SEPARATOR) {
-            indent(jg);
-        }
         jg.writeRaw("[");
+        jg.writeRaw(LINE_SEPARATOR);
         indentLevel++;
-
-        listContainsLiteralOnly.push(true);
-
-        lastState = State.START_ARRAY;
+        indent(jg);
     }
 
+    /**
+     * 输出数组第一个item前触发
+     */
     @Override
-    public void writeEndArray(JsonGenerator jg, int nrOfValues) throws IOException {
-        indentLevel--;
+    public void beforeArrayValues(JsonGenerator jg) throws IOException {}
 
-        if (!listContainsLiteralOnly.pop()) {
-            indent(jg);
-        }
-        jg.writeRaw("]");
-
-        lastState = State.END_ARRAY;
-    }
-
+    /**
+     * 数组item之间的分隔符
+     */
     @Override
     public void writeArrayValueSeparator(JsonGenerator jg) throws IOException {
-        jg.writeRaw(", ");
-
-        lastState = State.ARRAY_VALUE_SEPARATOR;
-    }
-
-    @Override
-    public void beforeArrayValues(JsonGenerator jg) throws IOException {
-        lastState = State.BEFORE_ARRAY_VALUES;
-    }
-
-    @Override
-    public void beforeObjectEntries(JsonGenerator jg) throws IOException {
+        jg.writeRaw(",");
+        jg.writeRaw(LINE_SEPARATOR);
         indent(jg);
-        lastState = State.BEFORE_OBJECT_ENTRIES;
+    }
+
+    /**
+     * 输出数组最后一个item前触发
+     */
+    @Override
+    public void writeEndArray(JsonGenerator jg, int nrOfValues) throws IOException {
+        jg.writeRaw(LINE_SEPARATOR);
+        indentLevel--;
+        indent(jg);
+        jg.writeRaw("]");
     }
 }

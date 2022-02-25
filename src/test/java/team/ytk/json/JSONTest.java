@@ -2802,6 +2802,14 @@ class JSONTest {
         System.out.println(
             JSON
                 .parse(
+                    "{\"int\":1,\"string\":\"2\",\"float\":2.5,\"double\":2.5,\"BigDecimal\":1,\"boolean\":false,\"null\":null,\"map\":{\"a\":\"1\",\"b\":\"2\"},\"JSON.Map\":{\"m1\":\"1\",\"m2\":\"2\"},\"List\":[\"1\",\"2\"],\"ListMap\":[{\"id1\":\"1\",\"id2\":\"2\",\"id3\":[[{\"id11\":\"1\",\"id22\":\"2\",\"id33\":{\"id333\":\"value1\"}}]]},{\"id1\":\"11\",\"id2\":\"22\",\"id3\":[[{\"id11\":\"11\",\"id22\":\"22\",\"id33\":{\"id333\":\"value2\"}}]]}],\"JSON.List\":[1,2,4,5,[6,7]]}"
+                )
+                .toString(true)
+        );
+
+        System.out.println(
+            JSON
+                .parse(
                     "[{\"map2\":\"2\",\"map1\":\"1\"},{\"map2\":\"22\",\"map1\":\"11\"}]"
                 )
                 .toString(true)
