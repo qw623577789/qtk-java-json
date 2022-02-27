@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.8.1'
+    implementation 'com.github.qw623577789:ytk-json:v1.9.0'
 }
 ```
 
@@ -20,6 +20,7 @@ dependencies {
 - 超级方便的JSON节点操作函数, 支持链式操作，丝滑般开发体验，具体见下面详细说明
 - 支持ES2020特性的可选链JSON POINT
 - 友好的错误提示，当节点路径不存在时，报错可提示具体节点路径(节点遍历也可以支持)
+- 美化输出JSON字符串时支持控制缩进空格数
 ## Function
 
 - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
@@ -39,6 +40,7 @@ dependencies {
 - **Point point(String point, Object defaultValue, boolean toUpdateNode)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．返回默认值; **``toUpdateNode``默认值为``false``,即使用默认值时不会更改原来对象的值,　设为true后，若节点不存在，则会修改JSON实例，将默认值补上**
 - **Point point(String point, Supplier\<Object\> defaultValueFunc, boolean toUpdateNode)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．执行函数返回默认值
 - **Point point(String point, HashMap<String, Object> defaultValueMap, boolean toUpdateNode)** 在**Point point(String point)**基础上，可为``第一个参数的point``路径批量设置默认值(point=".aaa.bbb.ccc", 可先设置.aaa = 对象，再设置.aaa.bbb = 对象)，在``get``、``has``操作时，若**节点不存在**时．**执行函数/直接**返回默认值
+- **JSONConfig config()** 自定义jackson库特性后进行JSON操作
 - Point操作
     - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性**)
         - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、**Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\> itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String, Object\> asMap()**、**JSON asJSON()**、**size()**
@@ -59,7 +61,16 @@ dependencies {
     - **boolean isMissing()** 返回point节点是否为Missing节点
     - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
     - **String toString(boolean pretty, int spaceAmount)** 将Point实例转换为JSON字符串, ``pretty``控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
-
+- JSONConfig jackson库特性配置，并且使用设置的特性进行JSON操作
+    - **JSONConfig features(HashMap\<FormatFeature, Boolean\> features)** 控制``jackson``库``enable/disable``特性
+    - **JSONConfig serializationInclusion(JsonInclude.Include setSerializationInclusion)** 控制``jackson``库``esetSerializationInclusion``特性
+    - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
+    - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
+    - **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例    
+    - **JSON missingNode()** 快速创建``missing``值的JSON实例
+    - **JSON nullNode()** 快速创建``null``值的JSON实例
+    - **JSON sPut(String id, Object value)** *静态方法*,　用于创建**JSON对象实例**,并设置key/value, value支持*大部分Java对象*及*JSON实例*
+    - **JSON sAdd(Object ...value)** *静态方法*,　用于创建**JSON数组实例**,并一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
 
 ## Usage
 
@@ -525,4 +536,26 @@ json
     .add(
         JSON.sAdd(JSON.sPut("id11", "1").put("id22", "2").put("id33", JSON.sPut("id333", "value1")))
     );
+```
+
+### 控制Jackson库特性
+
+```java
+Assertions.assertEquals(
+    JSON
+        .config()
+        .features(
+            new HashMap<FormatFeature, Boolean>() {
+                {
+                    put(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES, true); //允许key名不写引号
+                }
+            }
+        )
+        .serializationInclusion(JsonInclude.Include.NON_NULL)
+        .parse("{a:1}")
+        .point()
+        .get()
+        .isObject(),
+    true
+);
 ```

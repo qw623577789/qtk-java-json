@@ -11,10 +11,10 @@ public class ArrayNode extends Node {
     @Getter
     private ArrayList<Node> nodes = new ArrayList<Node>();
 
-    public static ArrayNode create(String path) {
+    public static ArrayNode create(String path, JSON jsonHelper) {
         ArrayNode arr = new ArrayNode();
         arr.path = path;
-        arr.jacksonNode = JSON.jackson.createArrayNode();
+        arr.jacksonNode = jsonHelper.jackson.createArrayNode();
         return arr;
     }
 

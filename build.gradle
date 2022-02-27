@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "team.ytk"
-version = "1.8.1"
+version = "1.9.0"
 sourceCompatibility = 11
 targetCompatibility = 11
 

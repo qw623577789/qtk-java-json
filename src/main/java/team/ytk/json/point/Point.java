@@ -54,7 +54,7 @@ public class Point {
     }
 
     public Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable) {
-        return new Get(this.instance, this.defaultValueMapper)
+        return new Get(this.instance, this.defaultValueMapper, this.jsonHelper)
         .get(this.breakcrumb, this.point, toWithDefault, supportNullishKey, nullable);
     }
 
@@ -73,7 +73,7 @@ public class Point {
         } else if (value instanceof JsonNode) {
             jacksonNode = (JsonNode) value;
         } else {
-            jacksonNode = JSON.jackson.valueToTree(value);
+            jacksonNode = jsonHelper.jackson.valueToTree(value);
         }
 
         String absouleBreakcrumb = this.breakcrumb + this.point;
@@ -104,7 +104,7 @@ public class Point {
         } else if (value instanceof JsonNode) {
             jacksonNode = (JsonNode) value;
         } else {
-            jacksonNode = JSON.jackson.valueToTree(value);
+            jacksonNode = jsonHelper.jackson.valueToTree(value);
         }
 
         String absouleBreakcrumb = this.breakcrumb + this.point;
@@ -113,7 +113,7 @@ public class Point {
         String parentPointKey = (String) parentKeyInfo[0];
         String lastPointKey = (String) parentKeyInfo[1];
 
-        Get parentNode = new Get(this.instance, this.defaultValueMapper);
+        Get parentNode = new Get(this.instance, this.defaultValueMapper, this.jsonHelper);
         parentNode.get("", parentPointKey, true, false, false);
 
         if (absouleBreakcrumb.contains("[*]")) {
@@ -209,7 +209,7 @@ public class Point {
 
         String finalLastPointKey = lastPointKey;
 
-        Get parentNode = new Get(this.instance, this.defaultValueMapper);
+        Get parentNode = new Get(this.instance, this.defaultValueMapper, this.jsonHelper);
         parentNode.get("", parentPointKey, true, false, false);
 
         if (parentPointKey.contains("[*]")) {
@@ -262,7 +262,7 @@ public class Point {
                                     } else if (item instanceof JsonNode) {
                                         operaNode.add(((JsonNode) item).deepCopy());
                                     } else {
-                                        operaNode.add(JSON.jackson.valueToTree(item));
+                                        operaNode.add(jsonHelper.jackson.valueToTree(item));
                                     }
                                 }
                             );
@@ -280,7 +280,7 @@ public class Point {
                         } else if (item instanceof JsonNode) {
                             operaNode.add(((JsonNode) item).deepCopy());
                         } else {
-                            operaNode.add(JSON.jackson.valueToTree(item));
+                            operaNode.add(jsonHelper.jackson.valueToTree(item));
                         }
                     }
                 );

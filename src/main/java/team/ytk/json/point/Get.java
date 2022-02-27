@@ -27,7 +27,9 @@ public class Get {
 
     private boolean nullable = false;
 
-    public Get(JsonNode value, HashMap<String, DefaultType> defaultValueMapper) {
+    private JSON jsonHelper;
+
+    public Get(JsonNode value, HashMap<String, DefaultType> defaultValueMapper, JSON jsonHelper) {
         this.valueNode = Node.gen(value, ".");
         defaultValueMapper
             .entrySet()
@@ -44,6 +46,7 @@ public class Get {
                         );
                 }
             );
+        this.jsonHelper = jsonHelper;
     }
 
     public String escapeExprSpecialWord(String keyword) {
@@ -108,7 +111,8 @@ public class Get {
                         boolean hasNullishKey = supportNullishKey && node.value.startsWith("?");
 
                         // 若节点为非数组，也处理成数组，下面结果输出时再转化出来
-                        if (!valueNode.isArray()) valueNode = ArrayNode.create("无意义").add(valueNode);
+                        if (!valueNode.isArray()) valueNode =
+                            ArrayNode.create("无意义", this.jsonHelper).add(valueNode);
 
                         ArrayNode returnNodes =
                             this.getIterValue(key, (ArrayNode) valueNode, toWithDefault, hasNullishKey);
@@ -162,7 +166,7 @@ public class Get {
         // 纯数组
         if (isArrayKey) {
             return ArrayNode
-                .create("无意义")
+                .create("无意义", this.jsonHelper)
                 .addAll(this.flatArrayNode(keyInfo, valueNode, toWithDefault, hasNullishKey));
         }
 
@@ -174,7 +178,7 @@ public class Get {
         return valueNode
             .stream()
             .reduce(
-                ArrayNode.create("无意义"),
+                ArrayNode.create("无意义", this.jsonHelper),
                 (collection, node) -> {
                     if (node.isMissingNode() || node.isNull()) {
                         collection.add(node);
@@ -232,13 +236,13 @@ public class Get {
         return arrayIndexs
             .stream()
             .reduce(
-                ArrayNode.create("无意义").add(valueNode), // 适配第一次遍历
+                ArrayNode.create("无意义", this.jsonHelper).add(valueNode), // 适配第一次遍历
                 (prev, arrayIndex) -> {
                     if (arrayIndex.equals("*")) { // 数组遍历
                         return prev
                             .stream()
                             .reduce(
-                                ArrayNode.create("无意义"),
+                                ArrayNode.create("无意义", this.jsonHelper),
                                 (collection, node) -> {
                                     String nodePath = node.getPath();
 
@@ -256,7 +260,7 @@ public class Get {
                         return prev
                             .stream()
                             .reduce(
-                                ArrayNode.create("无意义"),
+                                ArrayNode.create("无意义", this.jsonHelper),
                                 (collection, node) -> {
                                     String nodePath = node.getPath();
 
@@ -321,7 +325,7 @@ public class Get {
         } else if (defaultValue instanceof JsonNode) {
             jacksonNode = ((JsonNode) defaultValue).deepCopy();
         } else {
-            jacksonNode = JSON.jackson.valueToTree(defaultValue);
+            jacksonNode = this.jsonHelper.jackson.valueToTree(defaultValue);
         }
 
         Node fixNode = Node.gen(jacksonNode, nodePath);
@@ -353,7 +357,8 @@ public class Get {
     public String toString(boolean pretty, int spaceAmount) {
         if (pretty) {
             PrettyPrinter printer = new JsonStringifyPrettyPrinter(spaceAmount);
-            return JSON.jackson.writer(printer).writeValueAsString(this.valueNode.getJacksonNode());
+            return this.jsonHelper.jackson.writer(printer)
+                .writeValueAsString(this.valueNode.getJacksonNode());
         } else {
             return this.valueNode.getJacksonNode().toString();
         }
@@ -405,7 +410,7 @@ public class Get {
         }
         return this.valueNode.isNull()
             ? null
-            : JSON.jackson.convertValue(this.valueNode.getJacksonNode(), type);
+            : this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), type);
     }
 
     public List<Object> asList() {
@@ -458,7 +463,7 @@ public class Get {
             .elements()
             .forEachRemaining(
                 item -> {
-                    if (!item.isMissingNode()) list.add(JSON.jackson.convertValue(item, itemType));
+                    if (!item.isMissingNode()) list.add(this.jsonHelper.jackson.convertValue(item, itemType));
                 }
             );
         return list;
@@ -483,7 +488,8 @@ public class Get {
             .getJacksonNode()
             .fields()
             .forEachRemaining(
-                entry -> map.put(entry.getKey(), JSON.jackson.convertValue(entry.getValue(), valueType))
+                entry ->
+                    map.put(entry.getKey(), this.jsonHelper.jackson.convertValue(entry.getValue(), valueType))
             );
 
         return map;

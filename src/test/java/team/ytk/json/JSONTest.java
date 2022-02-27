@@ -3,6 +3,9 @@
  */
 package team.ytk.json;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.FormatFeature;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -2786,6 +2789,25 @@ class JSONTest {
     }
 
     @Test
+    void config() {
+        Assertions.assertEquals(
+            JSON
+                .config()
+                .features(
+                    new HashMap<FormatFeature, Boolean>() {
+                        {
+                            put(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES, true); //允许key名不写引号
+                        }
+                    }
+                )
+                .serializationInclusion(JsonInclude.Include.NON_NULL)
+                .parse("{a:1}")
+                .getJacksonNode() instanceof ObjectNode,
+            true
+        );
+    }
+
+    @Test
     void sugar() {
         Assertions.assertEquals(JSON.nullNode().point().get().asNull(), null);
 
@@ -2808,15 +2830,9 @@ class JSONTest {
         );
 
         System.out.println(
-            JSON
-                .parse(
-                    "[{\"map2\":\"2\",\"map1\":\"1\"},{\"map2\":\"22\",\"map1\":\"11\"}]"
-                )
-                .toString(true)
+            JSON.parse("[{\"map2\":\"2\",\"map1\":\"1\"},{\"map2\":\"22\",\"map1\":\"11\"}]").toString(true)
         );
 
-        System.out.println(
-            JSON.parse(new BigDecimal("1.0"))
-        );
+        System.out.println(JSON.parse(new BigDecimal("1.0")));
     }
 }
