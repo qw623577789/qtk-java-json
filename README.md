@@ -452,7 +452,7 @@ Assertions.assertEquals(
     json
         .point(".ListMap[0].id3[0][0].不存在节点.不存在节点")
         .defaultValue(
-            new HashMap<String, Object>() {
+            new DefaultValueMap() {
                 {
                     put(".ListMap[0].id3[0][0].不存在节点", new HashMap<String, Object>() {});
                     put(".ListMap[0].id3[0][0].不存在节点.不存在节点", "fix");
