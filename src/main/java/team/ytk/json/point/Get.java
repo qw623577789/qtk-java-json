@@ -401,6 +401,7 @@ public class Get {
     }
 
     public <T> T as(Class<T> type) {
+        if (type == JSON.class) return (T) asJSON();
         if (this.valueNode.isMissingNode()) {
             if (this.nullable) {
                 return null;

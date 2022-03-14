@@ -301,23 +301,23 @@ public class Point {
         return defaultValue((Object) defaultValueFunc, false);
     }
 
-    public Point defaultValue(Object defaultValue, boolean toUpdateNode) {
-        DefaultType def = DefaultType.builder().value(defaultValue).toUpdateNode(toUpdateNode).build();
-        this.defaultValueMapper.put((this.breakcrumb + this.point).replaceAll("\"", ""), def);
-        return this;
+    // default的point必须为point本体子集
+    public Point defaultValue(DefaultValueMap defaultValueMap) {
+        return defaultValue(defaultValueMap, false);
     }
 
     public Point defaultValue(Object defaultValue) {
         return defaultValue(defaultValue, false);
     }
 
-    // default的point必须为point本体子集
-    public Point defaultValue(HashMap<String, ?> defaultValueMap) {
-        return defaultValue((HashMap) defaultValueMap, false);
+    public Point defaultValue(Object defaultValue, boolean toUpdateNode) {
+        DefaultType def = DefaultType.builder().value(defaultValue).toUpdateNode(toUpdateNode).build();
+        this.defaultValueMapper.put((this.breakcrumb + this.point).replaceAll("\"", ""), def);
+        return this;
     }
 
     // default的point必须为point本体子集
-    public Point defaultValue(HashMap<String, ?> defaultValueMap, boolean toUpdateNode) {
+    public Point defaultValue(DefaultValueMap defaultValueMap, boolean toUpdateNode) {
         defaultValueMap
             .entrySet()
             .stream()
@@ -356,4 +356,6 @@ public class Point {
         @Builder.Default
         private boolean toUpdateNode = false;
     }
+
+    public static class DefaultValueMap extends HashMap<String, Object> {}
 }

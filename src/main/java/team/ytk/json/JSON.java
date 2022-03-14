@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.File;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import team.ytk.json.point.Point;
 import team.ytk.json.point.Point.DefaultType;
+import team.ytk.json.point.Point.DefaultValueMap;
 
 public class JSON {
 
@@ -122,19 +124,29 @@ public class JSON {
         .defaultValue(defaultValue);
     }
 
+    public Point point(String point, Object defaultValue) {
+        if (defaultValue instanceof DefaultValueMap) {
+            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
+            .defaultValue((DefaultValueMap) defaultValue);
+        } else {
+            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
+            .defaultValue(defaultValue);
+        }
+    }
+
     public Point point(String point, Supplier<Object> defaultValue, boolean toUpdateNode) {
         return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
         .defaultValue(defaultValue, toUpdateNode);
     }
 
-    public Point point(String point, Object defaultValue) {
-        return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-        .defaultValue(defaultValue);
-    }
-
     public Point point(String point, Object defaultValue, boolean toUpdateNode) {
-        return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-        .defaultValue(defaultValue, toUpdateNode);
+        if (defaultValue instanceof DefaultValueMap) {
+            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
+            .defaultValue((DefaultValueMap) defaultValue, toUpdateNode);
+        } else {
+            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
+            .defaultValue(defaultValue, toUpdateNode);
+        }
     }
 
     public Point point() {
@@ -207,6 +219,470 @@ public class JSON {
         } else {
             return this.json.toString();
         }
+    }
+
+    public <T> T getAs(String point, Class<T> type) {
+        return this.point(point).get().as(type);
+    }
+
+    public <T> T getAs(String point, Class<T> type, Object defaultValue) {
+        return this.point(point, defaultValue).get().as(type);
+    }
+
+    public <T> T getAs(String point, Class<T> type, DefaultValueMap defaultValueMap) {
+        return this.point(point, defaultValueMap).get().as(type);
+    }
+
+    public <T> T getAs(String point, Class<T> type, Supplier<Object> defaultValueSupplier) {
+        return this.point(point, defaultValueSupplier).get().as(type);
+    }
+
+    public <T> T getNullableAs(String point, Class<T> type) {
+        return this.point(point).get(true).as(type);
+    }
+
+    public <T> T getNullableAs(String point, Class<T> type, Object defaultValue) {
+        return this.point(point, defaultValue).get(true).as(type);
+    }
+
+    public <T> T getNullableAs(String point, Class<T> type, Supplier<Void> defaultValueSupplier) {
+        return this.point(point, defaultValueSupplier).get(true).as(type);
+    }
+
+    public <T> T getNullableAs(String point, Class<T> type, DefaultValueMap defaultValueMap) {
+        return this.point(point, defaultValueMap).get(true).as(type);
+    }
+
+    public Void getNull(String point) {
+        return getAs(point, Void.class);
+    }
+
+    public Void getNull(String point, boolean returnNull) {
+        return getAs(point, Void.class, (Void)null);
+    }
+
+    public Void getNull(String point, Supplier<Void> defaultValueSupplier) {
+        return getAs(point, Void.class, defaultValueSupplier);
+    }
+
+    public Void getNull(String point, DefaultValueMap defaultValueMap) {
+        return getAs(point, Void.class, defaultValueMap);
+    }
+
+    public Void getNullableNull(String point) {
+        return getNullableAs(point, Void.class);
+    }
+
+    public Void getNullableNull(String point, Object defaultValue) {
+        return getNullableAs(point, Void.class, defaultValue);
+    }
+
+    public Void getNullableNull(String point, Supplier<Object> defaultValueSupplier) {
+        return getNullableAs(point, Void.class, defaultValueSupplier);
+    }
+
+    public Void getNullableNull(String point, DefaultValueMap defaultValueMap) {
+        return getNullableAs(point, Void.class, defaultValueMap);
+    }
+
+    public String getString(String point) {
+        return getAs(point, String.class);
+    }
+
+    public String getString(String point, String defaultValue) {
+        return getAs(point, String.class, defaultValue);
+    }
+
+    public String getString(String point, Supplier<String> defaultValueSupplier) {
+        return getAs(point, String.class, defaultValueSupplier);
+    }
+
+    public String getString(String point, DefaultValueMap defaultValueMap) {
+        return getAs(point, String.class, defaultValueMap);
+    }
+
+    public String getNullableString(String point) {
+        return getNullableAs(point, String.class);
+    }
+
+    public String getNullableString(String point, String defaultValue) {
+        return getNullableAs(point, String.class, defaultValue);
+    }
+
+    public String getNullableString(String point, Supplier<String> defaultValueSupplier) {
+        return getNullableAs(point, String.class, defaultValueSupplier);
+    }
+
+    public String getNullableString(String point, DefaultValueMap  defaultValueMap) {
+        return getNullableAs(point, String.class, defaultValueMap);
+    }
+
+    public Boolean getBoolean(String point) {
+        return getAs(point, Boolean.class);
+    }
+
+    public Boolean getBoolean(String point, Boolean defaultValue) {
+        return getAs(point, Boolean.class, defaultValue);
+    }
+
+    public Boolean getBoolean(String point, Supplier<Boolean> defaultValueSupplier) {
+        return getAs(point, Boolean.class, defaultValueSupplier);
+    }
+
+    public Boolean getBoolean(String point, DefaultValueMap defaultValueMap) {
+        return getAs(point, Boolean.class, defaultValueMap);
+    }
+
+    public Boolean getNullableBoolean(String point) {
+        return getNullableAs(point, Boolean.class);
+    }
+
+    public Boolean getNullableBoolean(String point, Boolean defaultValue) {
+        return getNullableAs(point, Boolean.class, defaultValue);
+    }
+
+    public Boolean getNullableBoolean(String point, Supplier<Boolean> defaultValueSupplier) {
+        return getNullableAs(point, Boolean.class, defaultValueSupplier);
+    }
+
+    public Boolean getNullableBoolean(String point, DefaultValueMap  defaultValueMap) {
+        return getNullableAs(point, Boolean.class, defaultValueMap);
+    }
+
+    public Integer getInt(String point) {
+        return getAs(point, Integer.class);
+    }
+
+    public Integer getInt(String point, Integer defaultValue) {
+        return getAs(point, Integer.class, defaultValue);
+    }
+
+    public Integer getInt(String point, Supplier<Integer> defaultValueSupplier) {
+        return getAs(point, Integer.class, defaultValueSupplier);
+    }
+
+    public Integer getInt(String point, DefaultValueMap  defaultValueMap) {
+        return getAs(point, Integer.class, defaultValueMap);
+    }
+
+    public Integer getNullableInt(String point) {
+        return getNullableAs(point, Integer.class);
+    }
+
+    public Integer getNullableInt(String point, Integer defaultValue) {
+        return getNullableAs(point, Integer.class, defaultValue);
+    }
+
+    public Integer getNullableInt(String point, Supplier<Integer> defaultValueSupplier) {
+        return getNullableAs(point, Integer.class, defaultValueSupplier);
+    }
+
+    public Integer getNullableInt(String point, DefaultValueMap defaultValueMap) {
+        return getNullableAs(point, Integer.class, defaultValueMap);
+    }
+
+    public Double getDouble(String point) {
+        return getAs(point, Double.class);
+    }
+
+    public Double getDouble(String point, Double defaultValue) {
+        return getAs(point, Double.class, defaultValue);
+    }
+
+    public Double getDouble(String point, Supplier<Double> defaultValueSupplier) {
+        return getAs(point, Double.class, defaultValueSupplier);
+    }
+
+    public Double getDouble(String point, DefaultValueMap  defaultValueMap) {
+        return getAs(point, Double.class, defaultValueMap);
+    }
+
+    public Double getNullableDouble(String point) {
+        return getNullableAs(point, Double.class);
+    }
+
+    public Double getNullableDouble(String point, Double defaultValue) {
+        return getNullableAs(point, Double.class, defaultValue);
+    }
+
+    public Double getNullableDouble(String point, Supplier<Double> defaultValueSupplier) {
+        return getNullableAs(point, Double.class, defaultValueSupplier);
+    }
+
+    public Double getNullableDouble(String point, DefaultValueMap  defaultValueMap) {
+        return getNullableAs(point, Double.class, defaultValueMap);
+    }
+
+    public Long getLong(String point) {
+        return getAs(point, Long.class);
+    }
+
+    public Long getLong(String point, Long defaultValue) {
+        return getAs(point, Long.class, defaultValue);
+    }
+
+    public Long getLong(String point, Supplier<Long> defaultValueSupplier) {
+        return getAs(point, Long.class, defaultValueSupplier);
+    }
+
+    public Long getLong(String point, DefaultValueMap  defaultValueMap) {
+        return getAs(point, Long.class, defaultValueMap);
+    }
+
+    public Long getNullableLong(String point) {
+        return getNullableAs(point, Long.class);
+    }
+
+    public Long getNullableLong(String point, Long defaultValue) {
+        return getNullableAs(point, Long.class, defaultValue);
+    }
+
+    public Long getNullableLong(String point, Supplier<Long> defaultValueSupplier) {
+        return getNullableAs(point, Long.class, defaultValueSupplier);
+    }
+
+    public Long getNullableLong(String point, DefaultValueMap  defaultValueMap) {
+        return getNullableAs(point, Long.class, defaultValueMap);
+    }
+
+    public Float getFloat(String point) {
+        return getAs(point, Float.class);
+    }
+
+    public Float getFloat(String point, Float defaultValue) {
+        return getAs(point, Float.class, defaultValue);
+    }
+
+    public Float getFloat(String point, Supplier<Float> defaultValueSupplier) {
+        return getAs(point, Float.class, defaultValueSupplier);
+    }
+
+    public Float getFloat(String point, DefaultValueMap  defaultValueMap) {
+        return getAs(point, Float.class, defaultValueMap);
+    }
+
+    public Float getNullableFloat(String point) {
+        return getNullableAs(point, Float.class);
+    }
+
+    public Float getNullableFloat(String point, Float defaultValue) {
+        return getNullableAs(point, Float.class, defaultValue);
+    }
+
+    public Float getNullableFloat(String point, Supplier<Float> defaultValueSupplier) {
+        return getNullableAs(point, Float.class, defaultValueSupplier);
+    }
+
+    public Float getNullableFloat(String point, DefaultValueMap  defaultValueMap) {
+        return getNullableAs(point, Float.class, defaultValueMap);
+    }
+
+    public BigDecimal getBigDecimal(String point) {
+        return getAs(point, BigDecimal.class);
+    }
+
+    public BigDecimal getBigDecimal(String point, BigDecimal defaultValue) {
+        return getAs(point, BigDecimal.class, defaultValue);
+    }
+
+    public BigDecimal getBigDecimal(String point, Supplier<BigDecimal> defaultValueSupplier) {
+        return getAs(point, BigDecimal.class, defaultValueSupplier);
+    }
+
+    public BigDecimal getBigDecimal(String point, DefaultValueMap defaultValueMap) {
+        return getAs(point, BigDecimal.class, defaultValueMap);
+    }
+
+    public BigDecimal getNullableBigDecimal(String point) {
+        return getNullableAs(point, BigDecimal.class);
+    }
+
+    public BigDecimal getNullableBigDecimal(String point, BigDecimal defaultValue) {
+        return getNullableAs(point, BigDecimal.class, defaultValue);
+    }
+
+    public BigDecimal getNullableBigDecimal(String point, Supplier<BigDecimal> defaultValueSupplier) {
+        return getNullableAs(point, BigDecimal.class, defaultValueSupplier);
+    }
+
+    public BigDecimal getNullableBigDecimal(String point, DefaultValueMap  defaultValueMap) {
+        return getNullableAs(point, BigDecimal.class, defaultValueMap);
+    }
+
+    public JSON getJSON(String point) {
+        return getAs(point, JSON.class);
+    }
+
+    public JSON getJSON(String point, JSON defaultValue) {
+        return getAs(point, JSON.class, defaultValue);
+    }
+
+    public JSON getJSON(String point, Supplier<JSON> defaultValueSupplier) {
+        return getAs(point, JSON.class, defaultValueSupplier);
+    }
+
+    public JSON getJSON(String point, DefaultValueMap  defaultValueMap) {
+        return getAs(point, JSON.class, defaultValueMap);
+    }
+
+    public JSON getNullableJSON(String point) {
+        return getNullableAs(point, JSON.class);
+    }
+
+    public JSON getNullableJSON(String point, JSON defaultValue) {
+        return getNullableAs(point, JSON.class, defaultValue);
+    }
+
+    public JSON getNullableJSON(String point, Supplier<JSON> defaultValueSupplier) {
+        return getNullableAs(point, JSON.class, defaultValueSupplier);
+    }
+
+    public JSON getNullableJSON(String point, DefaultValueMap  defaultValueMap) {
+        return getNullableAs(point, JSON.class, defaultValueMap);
+    }
+
+    public <T> List<T> getList(String point, Class<T> itemType) {
+        return this.point(point).get().asList(itemType);
+    }
+
+    public <T> List<T> getList(String point, Class<T> itemType, Object defaultValue) {
+        return this.point(point, defaultValue).get().asList(itemType);
+    }
+
+    public <T> List<T> getList(String point, Class<T> itemType, Supplier<Object> defaultValueSupplier) {
+        return this.point(point, defaultValueSupplier).get().asList(itemType);
+    }
+
+    public <T> List<T> getList(String point, Class<T> itemType, DefaultValueMap  defaultValueMap) {
+        return this.point(point, defaultValueMap).get().asList(itemType);
+    }
+
+    public <T> List<T> getNullableList(String point, Class<T> itemType) {
+        return this.point(point).get(true).asList(itemType);
+    }
+
+    public <T> List<T> getNullableList(String point, Class<T> itemType, Object defaultValue) {
+        return this.point(point, defaultValue).get(true).asList(itemType);
+    }
+
+    public <T> List<T> getNullableList(
+        String point,
+        Class<T> itemType,
+        Supplier<Object> defaultValueSupplier
+    ) {
+        return this.point(point, defaultValueSupplier).get(true).asList(itemType);
+    }
+
+    public <T> List<T> getNullableList(String point, Class<T> itemType, DefaultValueMap  defaultValueMap) {
+        return this.point(point, defaultValueMap).get(true).asList(itemType);
+    }
+
+    public List<Object> getList(String point) {
+        return getList(point, Object.class);
+    }
+
+    public List<Object> getList(String point, List<Object> defaultValue) {
+        return getList(point, Object.class, defaultValue);
+    }
+
+    public List<Object> getList(String point, Supplier<Object> defaultValueSupplier) {
+        return getList(point, Object.class, defaultValueSupplier);
+    }
+
+    public List<Object> getList(String point, DefaultValueMap defaultValueMap) {
+        return getList(point, Object.class, defaultValueMap);
+    }
+
+    public List<Object> getNullableList(String point) {
+        return getNullableList(point, Object.class);
+    }
+
+    public List<Object> getNullableList(String point, List<Object> defaultValue) {
+        return getNullableList(point, Object.class, defaultValue);
+    }
+
+    public List<Object> getNullableList(String point, Supplier<Object> defaultValueSupplier) {
+        return getNullableList(point, Object.class, defaultValueSupplier);
+    }
+
+    public List<Object> getNullableList(String point, DefaultValueMap defaultValueMap) {
+        return getNullableList(point, Object.class, defaultValueMap);
+    }
+
+    public HashMap<String, Object> getMap(String point) {
+        return getMap(point, Object.class);
+    }
+
+    public HashMap<String, Object> getMap(String point, Object defaultValue) {
+        return this.point(point, defaultValue).get().asMap(Object.class);
+    }
+
+    public HashMap<String, Object> getMap(String point, Supplier<Object> defaultValueSupplier) {
+        return this.point(point, defaultValueSupplier).get().asMap(Object.class);
+    }
+
+    public HashMap<String, Object> getMap(String point, DefaultValueMap defaultValueMap) {
+        return this.point(point, defaultValueMap).get().asMap(Object.class);
+    }
+
+    public HashMap<String, Object> getNullableMap(String point) {
+        return this.point(point).get(true).asMap(Object.class);
+    }
+
+    public HashMap<String, Object> getNullableMap(String point, Object defaultValue) {
+        return this.point(point, defaultValue).get(true).asMap(Object.class);
+    }
+
+    public HashMap<String, Object> getNullableMap(String point, Supplier<Object> defaultValueSupplier) {
+        return this.point(point, defaultValueSupplier).get(true).asMap(Object.class);
+    }
+
+    public HashMap<String, Object> getNullableMap(String point, DefaultValueMap defaultValueMap) {
+        return this.point(point, defaultValueMap).get(true).asMap(Object.class);
+    }
+
+    public <T> HashMap<String, T> getMap(String point, Class<T> valueType) {
+        return this.point(point).get().asMap(valueType);
+    }
+
+    public <T> HashMap<String, T> getMap(String point, Class<T> valueType, Object defaultValue) {
+        return this.point(point, defaultValue).get().asMap(valueType);
+    }
+
+    public <T> HashMap<String, T> getMap(
+        String point,
+        Class<T> valueType,
+        Supplier<Object> defaultValueSupplier
+    ) {
+        return this.point(point, defaultValueSupplier).get().asMap(valueType);
+    }
+
+    public <T> HashMap<String, T> getMap(String point, Class<T> valueType, DefaultValueMap defaultValueMap) {
+        return this.point(point, defaultValueMap).get().asMap(valueType);
+    }
+
+    public <T> HashMap<String, T> getNullableMap(String point, Class<T> valueType) {
+        return this.point(point).get(true).asMap(valueType);
+    }
+
+    public <T> HashMap<String, T> getNullableMap(String point, Class<T> valueType, Object defaultValue) {
+        return this.point(point, defaultValue).get(true).asMap(valueType);
+    }
+
+    public <T> HashMap<String, T> getNullableMap(
+        String point,
+        Class<T> valueType,
+        Supplier<T> defaultValueSupplier
+    ) {
+        return this.point(point, defaultValueSupplier).get(true).asMap(valueType);
+    }
+
+    public <T> HashMap<String, T> getNullableMap(
+        String point,
+        Class<T> valueType,
+        DefaultValueMap defaultValueMap
+    ) {
+        return this.point(point, defaultValueMap).get(true).asMap(valueType);
     }
 
     public static class JSONConfig {

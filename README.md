@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.9.0'
+    implementation 'com.github.qw623577789:ytk-json:v1.10.0'
 }
 ```
 
@@ -559,3 +559,20 @@ Assertions.assertEquals(
     true
 );
 ```
+
+### 语法糖
+
+```java
+json.getXXX(".point"); //等同于json.point(".point").get().asXXX()
+
+json.getXXX(".point", "defaultValue"); //等同于json.point(".point").defaultValue("defaultValue").get().asXXX()
+
+json.getNullableXXX(".point"); //等同于json.point(".point").get(true).asXXX()
+
+json.getNullableXXX(".point", "defaultValue"); //等同于json.point(".point").get(true).defaultValue("defaultValue").asXXX()
+```
+
+### 注意
+
+- 设置了默认值的asList情况, 若point里有``[]``数组下标操作,则默认值是元素的默认值;若无,则是整个节点的默认值.
+    - 例如: point(".a[1].b", "1").asList(), 意思为给a数组下标为1的对象的b节点赋值1; point(".a", new ArrayList\<String\>(){}).asList(),意思是当对象的a节点不存在时,给对象添加一个数组节点a
