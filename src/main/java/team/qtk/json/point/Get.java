@@ -1,4 +1,4 @@
-package team.ytk.json.point;
+package team.qtk.json.point;
 
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -6,17 +6,19 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import team.ytk.json.JSON;
-import team.ytk.json.JsonStringifyPrettyPrinter;
-import team.ytk.json.node.ArrayNode;
-import team.ytk.json.node.Node;
-import team.ytk.json.point.Point.DefaultType;
-import team.ytk.stream.Stream;
+import team.qtk.json.JSON;
+import team.qtk.json.JsonStringifyPrettyPrinter;
+import team.qtk.json.node.ArrayNode;
+import team.qtk.json.node.Node;
+import team.qtk.json.point.Point.DefaultType;
+import team.qtk.stream.Stream;
 
 public class Get {
 
@@ -32,20 +34,14 @@ public class Get {
     public Get(JsonNode value, HashMap<String, DefaultType> defaultValueMapper, JSON jsonHelper) {
         this.valueNode = Node.gen(value, ".");
         defaultValueMapper
-            .entrySet()
-            .stream()
-            .forEach(
-                entry -> {
-                    this.regexpDefaultValueMapper.put(
-                            Pattern.compile(
-                                "^" +
-                                this.escapeExprSpecialWord(entry.getKey()).replaceAll("\\*", "\\d+") +
-                                "$"
-                            ),
-                            entry.getValue()
-                        );
-                }
-            );
+            .forEach((key, value1) -> this.regexpDefaultValueMapper.put(
+                Pattern.compile(
+                    "^" +
+                        this.escapeExprSpecialWord(key).replaceAll("\\*", "\\d+") +
+                        "$"
+                ),
+                value1
+            ));
         this.jsonHelper = jsonHelper;
     }
 
@@ -96,10 +92,10 @@ public class Get {
             Stream
                 .from(
                     Pattern
-                        .compile("[\\?]{0,1}\\.\".*?\"|[\\?]{0,1}\\..*?(?=[\\?]{0,1}\\.)|[\\?]{0,1}\\..*$") //匹配　."匹配内容"、?."匹配内容"、?.匹配内容.、?.匹配内容
+                        .compile("\\??\\.\".*?\"|\\??\\..*?(?=\\??\\.)|\\??\\..*$") //匹配　."匹配内容"、?."匹配内容"、?.匹配内容.、?.匹配内容
                         .matcher(absouleBreakcrumb)
                         .results()
-                        .map(item -> item.group())
+                        .map(MatchResult::group)
                 )
                 .reduce(
                     this.valueNode,
@@ -117,18 +113,18 @@ public class Get {
                         ArrayNode returnNodes =
                             this.getIterValue(key, (ArrayNode) valueNode, toWithDefault, hasNullishKey);
 
-                        if (isLastKey == false) { //非最后一个key的话，其值节点应该是一个非基础元素节点
+                        if (!isLastKey) { //非最后一个key的话，其值节点应该是一个非基础元素节点
                             returnNodes
                                 .stream()
                                 .forEach(
                                     item -> {
-                                        boolean isVaildNode =
+                                        boolean isValidNode =
                                             item.isObject() ||
                                             item.isArray() ||
                                             item.isMissingNode() ||
                                             item.isNull();
 
-                                        if (isVaildNode == false) throw new RuntimeException(
+                                        if (!isValidNode) throw new RuntimeException(
                                             "path:" + item.getPath() + "节点非为对象或者空值节点"
                                         );
                                     }
@@ -152,15 +148,15 @@ public class Get {
     ) {
         // 是否为纯数组节点
         boolean isArrayKey = Pattern
-            .compile("^(\\[([0-9]{1,}|\\*)\\]){1,}[\\?]{0,1}$") //匹配 .[数字或*]{1,n}可选链标记
+            .compile("^(\\[([0-9]+|\\*)])+\\??$") //匹配 .[数字或*]{1,n}可选链标记
             .matcher(key)
             .matches();
 
         List<String> keyInfo = Pattern
-            .compile("([^\\[|\\]|\\?]{1,})|(?<=\\[)([0-9]{1,}|\\*)(?=\\])") //匹配　匹配内容、匹配内容1[匹配内容2], 即字段名或字段名数组
+            .compile("([^\\[|\\]?]+)|(?<=\\[)([0-9]+|\\*)(?=])") //匹配　匹配内容、匹配内容1[匹配内容2], 即字段名或字段名数组
             .matcher(key)
             .results()
-            .map(i -> i.group())
+            .map(MatchResult::group)
             .collect(Collectors.toList());
 
         // 纯数组
@@ -173,7 +169,7 @@ public class Get {
         // 下面为对象节点/对象数组节点处理逻辑
         String realKey = keyInfo.get(0); //　纯数组已经在上面处理，这里必为对象，第一个必为字段名
 
-        List<String> arrayIndexs = keyInfo.subList(1, keyInfo.size());
+        List<String> arrayIndexes = keyInfo.subList(1, keyInfo.size());
 
         return valueNode
             .stream()
@@ -193,7 +189,7 @@ public class Get {
 
                     if (!node.has(realKey)) { // 节点不存在
                         if (toWithDefault) subNode = fixValueWithDefault(subNodePath, node, realKey);
-                        if (toWithDefault == false || subNode.isMissingNode()) {
+                        if (!toWithDefault || subNode.isMissingNode()) {
                             if (hasNullishKey) {
                                 collection.add(Node.createNullNode(subNodePath));
                             } else {
@@ -205,11 +201,11 @@ public class Get {
                         subNode = node.get(realKey);
                     }
 
-                    if (arrayIndexs.size() == 0) { //对象
+                    if (arrayIndexes.size() == 0) { //对象
                         collection.add(subNode);
                     } else {
                         collection.addAll(
-                            this.flatArrayNode(arrayIndexs, subNode, toWithDefault, hasNullishKey)
+                            this.flatArrayNode(arrayIndexes, subNode, toWithDefault, hasNullishKey)
                         );
                     }
 
@@ -221,19 +217,18 @@ public class Get {
 
     /**
      *
-     * @param arrayIndexs 多维数组里下标数组
+     * @param arrayIndexes 多维数组里下标数组
      * @param valueNode 节点
      * @param toWithDefault 是否使用默认值填充
      * @param hasNullishKey 是否有可选链
-     * @return
      */
     private ArrayNode flatArrayNode(
-        List<String> arrayIndexs,
+        List<String> arrayIndexes,
         Node valueNode,
         boolean toWithDefault,
         Boolean hasNullishKey
     ) {
-        return arrayIndexs
+        return arrayIndexes
             .stream()
             .reduce(
                 ArrayNode.create("无意义", this.jsonHelper).add(valueNode), // 适配第一次遍历
@@ -250,7 +245,7 @@ public class Get {
                                         throw new RuntimeException("path:" + nodePath + "其值必须为数组");
                                     }
 
-                                    node.stream().forEach(subNode -> collection.add(subNode));
+                                    node.stream().forEach(collection::add);
 
                                     return collection;
                                 },
@@ -282,7 +277,7 @@ public class Get {
                                                     node,
                                                     "[" + arrayIndex + "]"
                                                 );
-                                            if (toWithDefault == false || subNode.isMissingNode()) {
+                                            if (!toWithDefault || subNode.isMissingNode()) {
                                                 subNode =
                                                     hasNullishKey
                                                         ? Node.createNullNode(subNodePath)
@@ -311,13 +306,13 @@ public class Get {
                 .stream()
                 .filter(entry -> entry.getKey().asPredicate().test(nodePath))
                 .findFirst()
-                .map(m -> m.getValue())
+                .map(Map.Entry::getValue)
                 .orElse(null);
 
         if (defaultType == null) return Node.createMissingNode(nodePath);
 
         Object defaultValue = defaultType.getValue();
-        if (defaultValue instanceof Supplier) defaultValue = ((Supplier) defaultValue).get();
+        if (defaultValue instanceof Supplier) defaultValue = ((Supplier<?>) defaultValue).get();
 
         JsonNode jacksonNode;
         if (defaultValue instanceof JSON) {
@@ -440,13 +435,13 @@ public class Get {
             }
         }
 
-        if (valueNode.stream().allMatch(item -> item.isMissingNode())) {
+        if (valueNode.stream().allMatch(Node::isMissingNode)) {
             if (this.nullable) {
                 return valueNode.stream().map(node -> (T) null).collect(Collectors.toList());
             } else {
                 String missingPath = valueNode
                     .stream()
-                    .map(node -> node.getPath())
+                    .map(Node::getPath)
                     .collect(Collectors.joining(","));
                 throw new NullPointerException(missingPath + " is missing");
             }

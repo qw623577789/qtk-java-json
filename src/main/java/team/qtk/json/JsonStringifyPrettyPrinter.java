@@ -1,7 +1,8 @@
-package team.ytk.json;
+package team.qtk.json;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.PrettyPrinter;
+
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -26,7 +27,8 @@ public class JsonStringifyPrettyPrinter implements PrettyPrinter {
     }
 
     @Override
-    public void writeRootValueSeparator(JsonGenerator jg) throws IOException {}
+    public void writeRootValueSeparator(JsonGenerator jg) {
+    }
 
     /**
      * 准备开始输出对象时触发
@@ -43,7 +45,8 @@ public class JsonStringifyPrettyPrinter implements PrettyPrinter {
      * 输出对象第一个key前触发
      */
     @Override
-    public void beforeObjectEntries(JsonGenerator jg) throws IOException {}
+    public void beforeObjectEntries(JsonGenerator jg) {
+    }
 
     /**
      * 对象key-value之间的分隔符
@@ -89,7 +92,8 @@ public class JsonStringifyPrettyPrinter implements PrettyPrinter {
      * 输出数组第一个item前触发
      */
     @Override
-    public void beforeArrayValues(JsonGenerator jg) throws IOException {}
+    public void beforeArrayValues(JsonGenerator jg) {
+    }
 
     /**
      * 数组item之间的分隔符

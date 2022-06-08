@@ -11,7 +11,7 @@ plugins {
     id 'maven-publish'
 }
 
-group = "team.ytk"
+group = "team.qtk"
 version = "1.10.0"
 sourceCompatibility = 11
 targetCompatibility = 11
@@ -23,7 +23,7 @@ repositories {
 
 dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:2.13.1"
-    implementation "com.github.qw623577789:ytk-stream:v1.0.0"
+    implementation "com.github.qw623577789:qtk-stream:1.0.1"
     implementation 'org.projectlombok:lombok:1.18.22'
     
     // 普通编译时ADT

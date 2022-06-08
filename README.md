@@ -1,4 +1,4 @@
-YTK-Json
+QTK-Json
 ================
 基于**com.fasterxml.jackson**二次封装的JSON操作库,相比于原库,提供更加友好方便的JSON操作体验,更支持使用**JSON POINT**操作节点及类似Node.js ES2020可选链功能
 
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:ytk-json:v1.10.0'
+    implementation 'com.github.qw623577789:qtk-json:v1.10.0'
 }
 ```
 

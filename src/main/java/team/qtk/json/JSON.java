@@ -1,4 +1,4 @@
-package team.ytk.json;
+package team.qtk.json;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.FormatFeature;
@@ -11,21 +11,22 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
+
 import lombok.SneakyThrows;
-import team.ytk.json.point.Point;
-import team.ytk.json.point.Point.DefaultType;
-import team.ytk.json.point.Point.DefaultValueMap;
+import team.qtk.json.point.Point;
+import team.qtk.json.point.Point.DefaultValueMap;
 
 public class JSON {
 
     private static ObjectMapper defaultJackson = new ObjectMapper()
-    .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true)); //修复bigDecimal 1.0 转化后丢失.0问题
+        .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true)); //修复bigDecimal 1.0 转化后丢失.0问题
 
     public ObjectMapper jackson;
 
@@ -103,9 +104,9 @@ public class JSON {
         if (object instanceof String) {
             String string = (String) object;
             return (
-                    (string.startsWith("{") && string.endsWith("}")) ||
+                (string.startsWith("{") && string.endsWith("}")) ||
                     (string.startsWith("[") && string.endsWith("]"))
-                )
+            )
                 ? new JSON(jacksonMapper.readTree(string), jacksonMapper)
                 : new JSON(jacksonMapper.valueToTree(object).deepCopy(), jacksonMapper);
         } else if (object instanceof File) {
@@ -116,36 +117,36 @@ public class JSON {
     }
 
     public Point point(String point) {
-        return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this);
+        return new Point(point, "", new HashMap<>(), this.json, this);
     }
 
     public Point point(String point, Supplier<Object> defaultValue) {
-        return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-        .defaultValue(defaultValue);
+        return new Point(point, "", new HashMap<>(), this.json, this)
+            .defaultValue(defaultValue);
     }
 
     public Point point(String point, Object defaultValue) {
         if (defaultValue instanceof DefaultValueMap) {
-            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-            .defaultValue((DefaultValueMap) defaultValue);
+            return new Point(point, "", new HashMap<>(), this.json, this)
+                .defaultValue((DefaultValueMap) defaultValue);
         } else {
-            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-            .defaultValue(defaultValue);
+            return new Point(point, "", new HashMap<>(), this.json, this)
+                .defaultValue(defaultValue);
         }
     }
 
     public Point point(String point, Supplier<Object> defaultValue, boolean toUpdateNode) {
-        return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-        .defaultValue(defaultValue, toUpdateNode);
+        return new Point(point, "", new HashMap<>(), this.json, this)
+            .defaultValue(defaultValue, toUpdateNode);
     }
 
     public Point point(String point, Object defaultValue, boolean toUpdateNode) {
         if (defaultValue instanceof DefaultValueMap) {
-            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-            .defaultValue((DefaultValueMap) defaultValue, toUpdateNode);
+            return new Point(point, "", new HashMap<>(), this.json, this)
+                .defaultValue((DefaultValueMap) defaultValue, toUpdateNode);
         } else {
-            return new Point(point, "", new HashMap<String, DefaultType>(), this.json, this)
-            .defaultValue(defaultValue, toUpdateNode);
+            return new Point(point, "", new HashMap<>(), this.json, this)
+                .defaultValue(defaultValue, toUpdateNode);
         }
     }
 
@@ -214,7 +215,7 @@ public class JSON {
     @SneakyThrows
     public String toString(boolean pretty, int spaceAmount) {
         if (pretty) {
-            PrettyPrinter printer = new JsonStringifyPrettyPrinter(spaceAmount);
+            PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
             return jackson.writer(printer).writeValueAsString(this.json);
         } else {
             return this.json.toString();
@@ -258,7 +259,7 @@ public class JSON {
     }
 
     public Void getNull(String point, boolean returnNull) {
-        return getAs(point, Void.class, (Void)null);
+        return getAs(point, Void.class, (Void) null);
     }
 
     public Void getNull(String point, Supplier<Void> defaultValueSupplier) {
@@ -313,7 +314,7 @@ public class JSON {
         return getNullableAs(point, String.class, defaultValueSupplier);
     }
 
-    public String getNullableString(String point, DefaultValueMap  defaultValueMap) {
+    public String getNullableString(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, String.class, defaultValueMap);
     }
 
@@ -345,7 +346,7 @@ public class JSON {
         return getNullableAs(point, Boolean.class, defaultValueSupplier);
     }
 
-    public Boolean getNullableBoolean(String point, DefaultValueMap  defaultValueMap) {
+    public Boolean getNullableBoolean(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Boolean.class, defaultValueMap);
     }
 
@@ -361,7 +362,7 @@ public class JSON {
         return getAs(point, Integer.class, defaultValueSupplier);
     }
 
-    public Integer getInt(String point, DefaultValueMap  defaultValueMap) {
+    public Integer getInt(String point, DefaultValueMap defaultValueMap) {
         return getAs(point, Integer.class, defaultValueMap);
     }
 
@@ -393,7 +394,7 @@ public class JSON {
         return getAs(point, Double.class, defaultValueSupplier);
     }
 
-    public Double getDouble(String point, DefaultValueMap  defaultValueMap) {
+    public Double getDouble(String point, DefaultValueMap defaultValueMap) {
         return getAs(point, Double.class, defaultValueMap);
     }
 
@@ -409,7 +410,7 @@ public class JSON {
         return getNullableAs(point, Double.class, defaultValueSupplier);
     }
 
-    public Double getNullableDouble(String point, DefaultValueMap  defaultValueMap) {
+    public Double getNullableDouble(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Double.class, defaultValueMap);
     }
 
@@ -425,7 +426,7 @@ public class JSON {
         return getAs(point, Long.class, defaultValueSupplier);
     }
 
-    public Long getLong(String point, DefaultValueMap  defaultValueMap) {
+    public Long getLong(String point, DefaultValueMap defaultValueMap) {
         return getAs(point, Long.class, defaultValueMap);
     }
 
@@ -441,7 +442,7 @@ public class JSON {
         return getNullableAs(point, Long.class, defaultValueSupplier);
     }
 
-    public Long getNullableLong(String point, DefaultValueMap  defaultValueMap) {
+    public Long getNullableLong(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Long.class, defaultValueMap);
     }
 
@@ -457,7 +458,7 @@ public class JSON {
         return getAs(point, Float.class, defaultValueSupplier);
     }
 
-    public Float getFloat(String point, DefaultValueMap  defaultValueMap) {
+    public Float getFloat(String point, DefaultValueMap defaultValueMap) {
         return getAs(point, Float.class, defaultValueMap);
     }
 
@@ -473,7 +474,7 @@ public class JSON {
         return getNullableAs(point, Float.class, defaultValueSupplier);
     }
 
-    public Float getNullableFloat(String point, DefaultValueMap  defaultValueMap) {
+    public Float getNullableFloat(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Float.class, defaultValueMap);
     }
 
@@ -505,7 +506,7 @@ public class JSON {
         return getNullableAs(point, BigDecimal.class, defaultValueSupplier);
     }
 
-    public BigDecimal getNullableBigDecimal(String point, DefaultValueMap  defaultValueMap) {
+    public BigDecimal getNullableBigDecimal(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, BigDecimal.class, defaultValueMap);
     }
 
@@ -521,7 +522,7 @@ public class JSON {
         return getAs(point, JSON.class, defaultValueSupplier);
     }
 
-    public JSON getJSON(String point, DefaultValueMap  defaultValueMap) {
+    public JSON getJSON(String point, DefaultValueMap defaultValueMap) {
         return getAs(point, JSON.class, defaultValueMap);
     }
 
@@ -537,7 +538,7 @@ public class JSON {
         return getNullableAs(point, JSON.class, defaultValueSupplier);
     }
 
-    public JSON getNullableJSON(String point, DefaultValueMap  defaultValueMap) {
+    public JSON getNullableJSON(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, JSON.class, defaultValueMap);
     }
 
@@ -553,7 +554,7 @@ public class JSON {
         return this.point(point, defaultValueSupplier).get().asList(itemType);
     }
 
-    public <T> List<T> getList(String point, Class<T> itemType, DefaultValueMap  defaultValueMap) {
+    public <T> List<T> getList(String point, Class<T> itemType, DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get().asList(itemType);
     }
 
@@ -573,7 +574,7 @@ public class JSON {
         return this.point(point, defaultValueSupplier).get(true).asList(itemType);
     }
 
-    public <T> List<T> getNullableList(String point, Class<T> itemType, DefaultValueMap  defaultValueMap) {
+    public <T> List<T> getNullableList(String point, Class<T> itemType, DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get(true).asList(itemType);
     }
 
@@ -695,19 +696,15 @@ public class JSON {
 
         public JSONConfig features(HashMap<FormatFeature, Boolean> features) {
             features
-                .entrySet()
-                .forEach(
-                    item -> {
-                        Object feature = item.getKey();
-                        if (feature instanceof JsonReadFeature) {
-                            customJacksonBuilder.configure((JsonReadFeature) feature, item.getValue());
-                        } else if (feature instanceof JsonWriteFeature) {
-                            customJacksonBuilder.configure((JsonWriteFeature) feature, item.getValue());
-                        } else {
-                            throw new RuntimeException("no support feature:" + feature.getClass().getName());
-                        }
+                .forEach((key, value) -> {
+                    if (key instanceof JsonReadFeature) {
+                        customJacksonBuilder.configure((JsonReadFeature) key, value);
+                    } else if (key instanceof JsonWriteFeature) {
+                        customJacksonBuilder.configure((JsonWriteFeature) key, value);
+                    } else {
+                        throw new RuntimeException("no support feature:" + ((Object) key).getClass().getName());
                     }
-                );
+                });
             return this;
         }
 

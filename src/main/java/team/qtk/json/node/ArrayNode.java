@@ -1,15 +1,15 @@
-package team.ytk.json.node;
+package team.qtk.json.node;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 import lombok.Getter;
-import team.ytk.json.JSON;
+import team.qtk.json.JSON;
 
 public class ArrayNode extends Node {
 
     @Getter
-    private ArrayList<Node> nodes = new ArrayList<Node>();
+    private ArrayList<Node> nodes = new ArrayList<>();
 
     public static ArrayNode create(String path, JSON jsonHelper) {
         ArrayNode arr = new ArrayNode();
@@ -26,9 +26,7 @@ public class ArrayNode extends Node {
         jacksonNode
             .elements()
             .forEachRemaining(
-                node -> {
-                    arr.nodes.add(Node.gen(node, path + "[" + arr.nodes.size() + "]"));
-                }
+                node -> arr.nodes.add(Node.gen(node, path + "[" + arr.nodes.size() + "]"))
             );
         return arr;
     }
