@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import team.qtk.json.point.Point.DefaultValueMap;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -3630,5 +3631,26 @@ class JSONTest {
             ),
             "fix"
         );
+    }
+
+    @Test
+    void dateTimeGet() {
+        JSON json = JSON
+            .sPut("timestamp", 1657174400)
+            .put("milliTimestamp", 1657174400000L)
+            .put("date", "2022-07-07")
+            .put("dateTime", "2022-07-07 14:05:35");
+
+        System.out.println(json.toString());
+
+        assertEquals(json.point(".timestamp").get().asLocalDateTime(), LocalDateTime.parse("2022-07-07T14:13:20"));
+        assertEquals(json.point(".milliTimestamp").get().asLocalDateTime(), LocalDateTime.parse("2022-07-07T14:13:20"));
+        assertEquals(json.point(".dateTime").get().asLocalDateTime(), LocalDateTime.parse("2022-07-07T14:05:35"));
+        assertEquals(json.point(".date").get().asLocalDateTime(), LocalDateTime.parse("2022-07-07T00:00:00"));
+
+        assertEquals(json.getLocalDateTime(".timestamp"), LocalDateTime.parse("2022-07-07T14:13:20"));
+        assertEquals(json.getLocalDateTime(".milliTimestamp"), LocalDateTime.parse("2022-07-07T14:13:20"));
+        assertEquals(json.getLocalDateTime(".dateTime"), LocalDateTime.parse("2022-07-07T14:05:35"));
+        assertEquals(json.getLocalDateTime(".date"), LocalDateTime.parse("2022-07-07T00:00:00"));
     }
 }

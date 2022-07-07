@@ -3,6 +3,7 @@ package team.qtk.json.point;
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -369,6 +370,10 @@ public class Get {
 
     public Integer asInt() {
         return as(Integer.class);
+    }
+
+    public LocalDateTime asLocalDateTime() {
+        return as(LocalDateTime.class);
     }
 
     public Boolean asBoolean() {

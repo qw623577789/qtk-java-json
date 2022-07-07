@@ -11,22 +11,24 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.SneakyThrows;
+import team.qtk.json.point.Point;
+import team.qtk.json.point.Point.DefaultValueMap;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
 
-import lombok.SneakyThrows;
-import team.qtk.json.point.Point;
-import team.qtk.json.point.Point.DefaultValueMap;
-
 public class JSON {
 
     private static ObjectMapper defaultJackson = new ObjectMapper()
-        .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true)); //修复bigDecimal 1.0 转化后丢失.0问题
+        .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true)) //修复bigDecimal 1.0 转化后丢失.0问题
+        .registerModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()));
 
     public ObjectMapper jackson;
 
@@ -348,6 +350,38 @@ public class JSON {
 
     public Boolean getNullableBoolean(String point, DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Boolean.class, defaultValueMap);
+    }
+
+    public LocalDateTime getLocalDateTime(String point) {
+        return getAs(point, LocalDateTime.class);
+    }
+
+    public LocalDateTime getLocalDateTime(String point, Integer defaultValue) {
+        return getAs(point, LocalDateTime.class, defaultValue);
+    }
+
+    public LocalDateTime getLocalDateTime(String point, Supplier<LocalDateTime> defaultValueSupplier) {
+        return getAs(point, LocalDateTime.class, defaultValueSupplier);
+    }
+
+    public LocalDateTime getLocalDateTime(String point, DefaultValueMap defaultValueMap) {
+        return getAs(point, LocalDateTime.class, defaultValueMap);
+    }
+
+    public LocalDateTime getNullableLocalDateTime(String point) {
+        return getNullableAs(point, LocalDateTime.class);
+    }
+
+    public LocalDateTime getNullableLocalDateTime(String point, LocalDateTime defaultValue) {
+        return getNullableAs(point, LocalDateTime.class, defaultValue);
+    }
+
+    public LocalDateTime getNullableLocalDateTime(String point, Supplier<LocalDateTime> defaultValueSupplier) {
+        return getNullableAs(point, LocalDateTime.class, defaultValueSupplier);
+    }
+
+    public LocalDateTime getNullableLocalDateTime(String point, DefaultValueMap defaultValueMap) {
+        return getNullableAs(point, LocalDateTime.class, defaultValueMap);
     }
 
     public Integer getInt(String point) {
