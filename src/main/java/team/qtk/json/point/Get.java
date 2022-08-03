@@ -2,6 +2,15 @@ package team.qtk.json.point;
 
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.Getter;
+import lombok.SneakyThrows;
+import team.qtk.json.JSON;
+import team.qtk.json.JsonStringifyPrettyPrinter;
+import team.qtk.json.node.ArrayNode;
+import team.qtk.json.node.Node;
+import team.qtk.json.point.Point.DefaultType;
+import team.qtk.stream.Stream;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -12,14 +21,6 @@ import java.util.function.Supplier;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import lombok.Getter;
-import lombok.SneakyThrows;
-import team.qtk.json.JSON;
-import team.qtk.json.JsonStringifyPrettyPrinter;
-import team.qtk.json.node.ArrayNode;
-import team.qtk.json.node.Node;
-import team.qtk.json.point.Point.DefaultType;
-import team.qtk.stream.Stream;
 
 public class Get {
 
@@ -121,9 +122,9 @@ public class Get {
                                     item -> {
                                         boolean isValidNode =
                                             item.isObject() ||
-                                            item.isArray() ||
-                                            item.isMissingNode() ||
-                                            item.isNull();
+                                                item.isArray() ||
+                                                item.isMissingNode() ||
+                                                item.isNull();
 
                                         if (!isValidNode) throw new RuntimeException(
                                             "path:" + item.getPath() + "节点非为对象或者空值节点"
@@ -217,9 +218,8 @@ public class Get {
     }
 
     /**
-     *
-     * @param arrayIndexes 多维数组里下标数组
-     * @param valueNode 节点
+     * @param arrayIndexes  多维数组里下标数组
+     * @param valueNode     节点
      * @param toWithDefault 是否使用默认值填充
      * @param hasNullishKey 是否有可选链
      */
@@ -440,7 +440,7 @@ public class Get {
             }
         }
 
-        if (valueNode.stream().allMatch(Node::isMissingNode)) {
+        if (valueNode.stream().findAny().isPresent() && valueNode.stream().allMatch(Node::isMissingNode)) {
             if (this.nullable) {
                 return valueNode.stream().map(node -> (T) null).collect(Collectors.toList());
             } else {
