@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:qtk-json:v1.10.0'
+    implementation 'com.github.qw623577789:qtk-json:v1.12.0'
 }
 ```
 
@@ -64,7 +64,9 @@ dependencies {
     - **String toString(boolean pretty, int spaceAmount)** 将Point实例转换为JSON字符串, ``pretty``控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
 - JSONConfig jackson库特性配置，并且使用设置的特性进行JSON操作
     - **JSONConfig features(HashMap\<FormatFeature, Boolean\> features)** 控制``jackson``库``enable/disable``特性
-    - **JSONConfig serializationInclusion(JsonInclude.Include setSerializationInclusion)** 控制``jackson``库``esetSerializationInclusion``特性
+    - **JSONConfig serializationInclusion(JsonInclude.Include setSerializationInclusion)** 控制``jackson``库``setSerializationInclusion``特性
+    - **JSONConfig registerModule(com.fasterxml.jackson.databind.Module... module)** 为``jackson``库注册模块
+    - **JSONConfig confirmToCreateMapper()** 最终生成``jackson``库``ObjectMapper``,应用于后续的操作
     - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
     - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
     - **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例    
@@ -575,6 +577,7 @@ Assertions.assertEquals(
             }
         )
         .serializationInclusion(JsonInclude.Include.NON_NULL)
+        .confirmToCreateMapper()
         .parse("{a:1}")
         .point()
         .get()

@@ -34,10 +34,14 @@ public class JSON {
 
     private JsonNode json;
 
+    /**
+     * 自定义配置ObjectMapper
+     */
     public static JSONConfig config() {
         JsonMapper.Builder customJacksonBuilder = JsonMapper
             .builder()
-            .nodeFactory(JsonNodeFactory.withExactBigDecimals(true)); //修复bigDecimal 1.0 转化后丢失.0问题
+            .nodeFactory(JsonNodeFactory.withExactBigDecimals(true)) //修复bigDecimal 1.0 转化后丢失.0问题
+            .addModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()));
 
         return new JSONConfig(customJacksonBuilder);
     }
@@ -724,6 +728,8 @@ public class JSON {
 
         private JsonMapper.Builder customJacksonBuilder;
 
+        private ObjectMapper customJacksonMapper;
+
         public JSONConfig(JsonMapper.Builder customJacksonBuilder) {
             this.customJacksonBuilder = customJacksonBuilder;
         }
@@ -747,32 +753,48 @@ public class JSON {
             return this;
         }
 
+        /**
+         * 增加注册模块
+         */
+        public JSONConfig registerModule(com.fasterxml.jackson.databind.Module... module) {
+            customJacksonBuilder.addModules(module);
+            return this;
+        }
+
+        /**
+         * 最终生成ObjectMapper
+         */
+        public JSONConfig confirmToCreateMapper() {
+            customJacksonMapper = customJacksonBuilder.build();
+            return this;
+        }
+
         public JSON JSON(JsonNode jacksonNode) {
-            return new JSON(jacksonNode, customJacksonBuilder.build());
+            return new JSON(jacksonNode, customJacksonMapper);
         }
 
         public JSON JSON(boolean isObject) {
-            return new JSON(isObject, customJacksonBuilder.build());
+            return new JSON(isObject, customJacksonMapper);
         }
 
         public JSON missingNode() {
-            return JSON.missingNode(customJacksonBuilder.build());
+            return JSON.missingNode(customJacksonMapper);
         }
 
         public JSON nullNode() {
-            return JSON.nullNode(customJacksonBuilder.build());
+            return JSON.nullNode(customJacksonMapper);
         }
 
         public JSON sPut(String id, Object value) {
-            return JSON.sPut(customJacksonBuilder.build(), id, value);
+            return JSON.sPut(customJacksonMapper, id, value);
         }
 
         public JSON sAdd(Object... value) {
-            return JSON.sAdd(customJacksonBuilder.build(), value);
+            return JSON.sAdd(customJacksonMapper, value);
         }
 
         public JSON parse(Object object) {
-            return JSON.parse(customJacksonBuilder.build(), object);
+            return JSON.parse(customJacksonMapper, object);
         }
     }
 }

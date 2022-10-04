@@ -2798,6 +2798,7 @@ class JSONTest {
                 }
             )
             .serializationInclusion(JsonInclude.Include.NON_NULL)
+            .confirmToCreateMapper()
             .parse("{a:1}")
             .getJacksonNode() instanceof ObjectNode);
     }
