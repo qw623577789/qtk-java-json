@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.qw623577789:qtk-json:v1.12.0'
+    implementation 'com.github.qw623577789:qtk-json:v1.13.0'
 }
 ```
 

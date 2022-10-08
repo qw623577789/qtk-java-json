@@ -1,12 +1,13 @@
 package team.qtk.json;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.FormatFeature;
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -734,13 +735,17 @@ public class JSON {
             this.customJacksonBuilder = customJacksonBuilder;
         }
 
-        public JSONConfig features(HashMap<FormatFeature, Boolean> features) {
+        public JSONConfig features(HashMap<Object, Boolean> features) {
             features
                 .forEach((key, value) -> {
                     if (key instanceof JsonReadFeature) {
                         customJacksonBuilder.configure((JsonReadFeature) key, value);
                     } else if (key instanceof JsonWriteFeature) {
                         customJacksonBuilder.configure((JsonWriteFeature) key, value);
+                    } else if (key instanceof SerializationFeature) {
+                        customJacksonBuilder.configure((SerializationFeature) key, value);
+                    } else if (key instanceof DeserializationFeature) {
+                        customJacksonBuilder.configure((DeserializationFeature) key, value);
                     } else {
                         throw new RuntimeException("no support feature:" + ((Object) key).getClass().getName());
                     }
