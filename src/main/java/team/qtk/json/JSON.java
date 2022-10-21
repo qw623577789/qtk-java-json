@@ -18,6 +18,7 @@ import team.qtk.json.point.Point;
 import team.qtk.json.point.Point.DefaultValueMap;
 
 import java.io.File;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -118,6 +119,8 @@ public class JSON {
                 : new JSON(jacksonMapper.valueToTree(object).deepCopy(), jacksonMapper);
         } else if (object instanceof File) {
             return new JSON(jacksonMapper.readTree((File) object), jacksonMapper);
+        } else if (object instanceof Reader) {
+            return new JSON(jacksonMapper.readTree((Reader) object), jacksonMapper);
         } else {
             return new JSON(jacksonMapper.valueToTree(object).deepCopy(), jacksonMapper);
         }
