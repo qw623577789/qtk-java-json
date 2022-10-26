@@ -22,21 +22,31 @@ dependencies {
 - 友好的错误提示，当节点路径不存在时，报错可提示具体节点路径(节点遍历也可以支持)
 - 支持常用日期格式时间戳转化为``LocalDateTime``
 - 美化输出JSON字符串时支持控制缩进空格数
-## Function
+- 支持JSON Merge操作(类似Node Object.assign函数)，合并key操作
 
+## 方法
+
+### 创建JSON对象
 - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
 - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
-- **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例
+- **JSON parse(Object object)** 可将大部分Java对象(*Class、Map、List、File、Reader*)转换为JSON实例
 - **String toString(boolean pretty, int spaceAmount)** 将JSON实例转换为JSON字符串, ``pretty``控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
 - **JSON deepCopy()** 深拷贝JSON实例
 - **JSON missingNode()** 快速创建``missing``值的JSON实例
 - **JSON nullNode()** 快速创建``null``值的JSON实例
+- **JSON createObject()** 快速创建空对象的JSON实例
+- **JSON createArray()** 快速创建空数组的JSON实例
+- **JSON assign(Object target, Object... sources)** JSON对象合并
 - **JsonNode getJacksonNode()** 将JSON实例转换为com.fasterxml.jackson的``JsonNode``
+
+### JSON新增
 - **JSON sPut(String id, Object value)** *静态方法*,　用于创建**JSON对象实例**,并设置key/value, value支持*大部分Java对象*及*JSON实例*
 - **JSON put(String id, Object value)** 在**JSON对象实例**上设置key/value, value支持*大部分Java对象*及*JSON实例*
 - **JSON sAdd(Object ...value)** *静态方法*,　用于创建**JSON数组实例**,并一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
 - **JSON add(Object ...value)** 在**JSON数组实例**上一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
 - **JSON concat(List<?> list)** 在**JSON数组实例**上添加存于``List``的元素，value支持*大部分Java对象*及*JSON实例*
+
+### JSON Point指针操作 Get/Put/Delete/Has/Add/Concat
 - **Point point(String point)** 根据JSON路径(例如 \.aaa.bbb[0].ccc[*].ddd)返回一个``Point``对象，用于对节点进行``get``、``put``、``delete``、``has``、``add``、``concat``操作
 - **Point point(String point, Object defaultValue, boolean toUpdateNode)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．返回默认值; **``toUpdateNode``默认值为``false``,即使用默认值时不会更改原来对象的值,　设为true后，若节点不存在，则会修改JSON实例，将默认值补上**
 - **Point point(String point, Supplier\<Object\> defaultValueFunc, boolean toUpdateNode)** 在**Point point(String point)**基础上，在``get``、``has``操作时，若**节点不存在**时．执行函数返回默认值
@@ -62,16 +72,25 @@ dependencies {
     - **boolean isMissing()** 返回point节点是否为Missing节点
     - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
     - **String toString(boolean pretty, int spaceAmount)** 将Point实例转换为JSON字符串, ``pretty``控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
+
+### JSON合并
+- **(静态方法)JSON assign(Object target, Object... sources)** 将所有可枚举属性的值从一个或多个源对象复制到目标对象，类似Node的``Object.assign`，可结合给字段加``Jackson的@JsonMerge``实现深浅拷贝
+- **(实例方法)JSON merge(Object... sources)** 将所有可枚举属性的值从一个或多个源对象复制到当前对象
+
+### 定制JSON库特性(Jackson特性)
 - JSONConfig jackson库特性配置，并且使用设置的特性进行JSON操作
     - **JSONConfig features(HashMap\<FormatFeature, Boolean\> features)** 控制``jackson``库``enable/disable``特性
     - **JSONConfig serializationInclusion(JsonInclude.Include setSerializationInclusion)** 控制``jackson``库``setSerializationInclusion``特性
     - **JSONConfig registerModule(com.fasterxml.jackson.databind.Module... module)** 为``jackson``库注册模块
-    - **JSONConfig confirmToCreateMapper()** 最终生成``jackson``库``ObjectMapper``,应用于后续的操作
+    - **JSONConfig confirmToCreateMapper()** **<font color=red>最终生成``jackson``库``ObjectMapper``,应用于后续的操作</font>**
     - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
     - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
     - **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例    
     - **JSON missingNode()** 快速创建``missing``值的JSON实例
     - **JSON nullNode()** 快速创建``null``值的JSON实例
+    - **JSON createObject()** 快速创建空对象的JSON实例
+    - **JSON createArray()** 快速创建空数组的JSON实例
+    - **JSON assign(Object target, Object... sources)** JSON对象合并
     - **JSON sPut(String id, Object value)** *静态方法*,　用于创建**JSON对象实例**,并设置key/value, value支持*大部分Java对象*及*JSON实例*
     - **JSON sAdd(Object ...value)** *静态方法*,　用于创建**JSON数组实例**,并一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
 
@@ -591,10 +610,14 @@ Assertions.assertEquals(
 ```java
 json.getXXX(".point"); //等同于json.point(".point").get().asXXX()
 
+json.getXXX(); //等同于json.point(".").get().asXXX()
+        
 json.getXXX(".point", "defaultValue"); //等同于json.point(".point").defaultValue("defaultValue").get().asXXX()
 
 json.getNullableXXX(".point"); //等同于json.point(".point").get(true).asXXX()
 
+json.getNullableXXX(); //等同于json.point(".").get(true).asXXX()
+        
 json.getNullableXXX(".point", "defaultValue"); //等同于json.point(".point").get(true).defaultValue("defaultValue").asXXX()
 ```
 

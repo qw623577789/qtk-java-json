@@ -8,6 +8,10 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import team.qtk.json.point.Point.DefaultValueMap;
@@ -3653,5 +3657,48 @@ class JSONTest {
         assertEquals(json.getLocalDateTime(".milliTimestamp"), LocalDateTime.parse("2022-07-07T14:13:20"));
         assertEquals(json.getLocalDateTime(".dateTime"), LocalDateTime.parse("2022-07-07T14:05:35"));
         assertEquals(json.getLocalDateTime(".date"), LocalDateTime.parse("2022-07-07T00:00:00"));
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class A {
+        private String a;
+        private B b;
+
+        @Data
+        @NoArgsConstructor
+        @AllArgsConstructor
+        @Builder
+        public static class B {
+            private String b;
+        }
+    }
+
+    @Test
+    void assign() {
+        A aObj = A.builder().a("a").b(A.B.builder().b("b").build()).build();
+        String assign1 = "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}";
+        A assign2 = A.builder().a("a2").b(A.B.builder().b("b2").build()).build();
+        Assertions.assertEquals(JSON.assign(aObj, assign1, assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
+    }
+
+    @Test
+    void newObjectAssign() {
+
+        JSON json = JSON.createObject();
+
+        A aObj = A.builder().a("a").b(A.B.builder().b("b").build()).build();
+
+        String assign1 = "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}";
+        Assertions.assertEquals( json.merge(aObj, assign1).toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        Assertions.assertEquals( json.toString(),"{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        Assertions.assertEquals(  JSON.parse(aObj).toString(), "{\"a\":\"a\",\"b\":{\"b\":\"b\"}}");
+
+        A assign2 = A.builder().a("a2").b(A.B.builder().b("b2").build()).build();
+        Assertions.assertEquals(JSON.assign(JSON.createObject(), assign1, assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
+        Assertions.assertEquals(assign1, "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        Assertions.assertEquals(JSON.parse(assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
     }
 }
