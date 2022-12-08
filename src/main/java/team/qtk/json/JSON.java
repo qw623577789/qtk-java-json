@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class JSON {
@@ -189,6 +190,21 @@ public class JSON {
             objectNode.set(id, null);
         } else if (value instanceof JSON) {
             objectNode.set(id, ((JSON) value).getJacksonNode());
+        } else if (value instanceof List) {
+            objectNode.set(
+                id,
+                jackson.valueToTree(
+                    ((List<?>) value).stream().map(item -> {
+                        if (item == null) {
+                            return null;
+                        } else if (item instanceof JSON) {
+                            return ((JSON) item).getJacksonNode();
+                        } else {
+                            return jackson.valueToTree(item);
+                        }
+                    }).collect(Collectors.toList())
+                )
+            );
         } else {
             objectNode.set(id, jackson.valueToTree(value));
         }
@@ -210,7 +226,23 @@ public class JSON {
                             arrayNode.add(jackson.valueToTree(null));
                         } else if (item instanceof JSON) {
                             arrayNode.add(((JSON) item).getJacksonNode());
-                        } else {
+                        }
+                        else if (item instanceof List) {
+                            arrayNode.add(
+                                jackson.valueToTree(
+                                    ((List<?>) item).stream().map(i -> {
+                                        if (i == null) {
+                                            return null;
+                                        } else if (i instanceof JSON) {
+                                            return ((JSON) i).getJacksonNode();
+                                        } else {
+                                            return jackson.valueToTree(i);
+                                        }
+                                    }).collect(Collectors.toList())
+                                )
+                            );
+                        }
+                        else {
                             arrayNode.add(jackson.valueToTree(item));
                         }
                     }

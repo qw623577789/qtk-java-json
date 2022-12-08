@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -3659,6 +3660,16 @@ class JSONTest {
         assertEquals(json.getLocalDateTime(".date"), LocalDateTime.parse("2022-07-07T00:00:00"));
     }
 
+    @Test
+    void fixListJSONPutOrAdd() {
+        var obj = JSON.parse("{\"id\":\"424C6EB8FDBE4A478C1E420806525D19\",\"from\":40,\"name\":\"test3\",\"alias\":\"82sdsadsadasdsadsaddsadsadsadsacxzcasdsadswqewqewqsdsadsadsaewqe\",\"image\":\"http://dummyimage.com/400x400\",\"price\":13,\"equity\":\"magna dolor\",\"status\":1,\"pattern\":0,\"urlFrom\":0,\"category\":0,\"createdAt\":1670293312,\"describes\":[\"quisnulladasdsadsadsadsadsadsa\",\"quisnulladasdsadsadsadsadsadsa\",\"quisnulladasdsadsadsadsadsadsa\"],\"isDeleted\":0,\"tocBuyUrl\":\"http://vclp.nc/ridspj\",\"supplierId\":0,\"commodityCode\":\"82sdsadsadasdsadsaddsadsadsadsacxzcasdsadswqewqewqsdsadsadsaewqe\",\"createdCoreOrgId\":\"000\"}")
+            .getJSON();
+
+        System.out.println(JSON.sPut("timestamp", List.of(obj, 1)).toString());
+        System.out.println(JSON.sAdd(List.of(obj, 1)).toString());
+
+    }
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -3692,9 +3703,9 @@ class JSONTest {
         A aObj = A.builder().a("a").b(A.B.builder().b("b").build()).build();
 
         String assign1 = "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}";
-        Assertions.assertEquals( json.merge(aObj, assign1).toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
-        Assertions.assertEquals( json.toString(),"{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
-        Assertions.assertEquals(  JSON.parse(aObj).toString(), "{\"a\":\"a\",\"b\":{\"b\":\"b\"}}");
+        Assertions.assertEquals(json.merge(aObj, assign1).toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        Assertions.assertEquals(json.toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        Assertions.assertEquals(JSON.parse(aObj).toString(), "{\"a\":\"a\",\"b\":{\"b\":\"b\"}}");
 
         A assign2 = A.builder().a("a2").b(A.B.builder().b("b2").build()).build();
         Assertions.assertEquals(JSON.assign(JSON.createObject(), assign1, assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
