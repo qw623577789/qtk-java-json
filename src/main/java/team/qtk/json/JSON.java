@@ -226,8 +226,7 @@ public class JSON {
                             arrayNode.add(jackson.valueToTree(null));
                         } else if (item instanceof JSON) {
                             arrayNode.add(((JSON) item).getJacksonNode());
-                        }
-                        else if (item instanceof List) {
+                        } else if (item instanceof List) {
                             arrayNode.add(
                                 jackson.valueToTree(
                                     ((List<?>) item).stream().map(i -> {
@@ -241,8 +240,7 @@ public class JSON {
                                     }).collect(Collectors.toList())
                                 )
                             );
-                        }
-                        else {
+                        } else {
                             arrayNode.add(jackson.valueToTree(item));
                         }
                     }
@@ -1251,6 +1249,70 @@ public class JSON {
         DefaultValueMap defaultValueMap
     ) {
         return this.getNullableMap(".", valueType, defaultValueMap);
+    }
+
+    public Object getObject(String point) {
+        return getAs(point, Object.class);
+    }
+
+    public Object getObject() {
+        return getObject(".");
+    }
+
+    public Object getObject(String point, Object defaultValue) {
+        return getAs(point, Object.class, defaultValue);
+    }
+
+    public Object getObject(Object defaultValue) {
+        return getObject(".", defaultValue);
+    }
+
+    public Object getObject(String point, Supplier<Object> defaultValueSupplier) {
+        return getAs(point, Object.class, defaultValueSupplier);
+    }
+
+    public Object getObject(Supplier<Object> defaultValueSupplier) {
+        return getObject(".", defaultValueSupplier);
+    }
+
+    public Object getObject(String point, DefaultValueMap defaultValueMap) {
+        return getAs(point, Object.class, defaultValueMap);
+    }
+
+    public Object getObject(DefaultValueMap defaultValueMap) {
+        return getObject(".", defaultValueMap);
+    }
+
+    public Object getNullableObject(String point) {
+        return getNullableAs(point, Object.class);
+    }
+
+    public Object getNullableObject() {
+        return getNullableObject(".");
+    }
+
+    public Object getNullableObject(String point, Object defaultValue) {
+        return getNullableAs(point, Object.class, defaultValue);
+    }
+
+    public Object getNullableObject(Object defaultValue) {
+        return getNullableObject(".", defaultValue);
+    }
+
+    public Object getNullableObject(String point, Supplier<Object> defaultValueSupplier) {
+        return getNullableObject(point, defaultValueSupplier);
+    }
+
+    public Object getNullableObject(Supplier<Object> defaultValueSupplier) {
+        return getNullableObject(".", defaultValueSupplier);
+    }
+
+    public Object getNullableObject(String point, DefaultValueMap defaultValueMap) {
+        return getNullableAs(point, Object.class, defaultValueMap);
+    }
+
+    public Object getNullableObject(DefaultValueMap defaultValueMap) {
+        return getNullableObject(".", defaultValueMap);
     }
 
     public static class JSONConfig {
