@@ -384,6 +384,10 @@ public class Get {
         return as(Double.class);
     }
 
+    public Object asObject() {
+        return as(Object.class);
+    }
+
     public Void asNull() {
         return as(Void.class);
     }

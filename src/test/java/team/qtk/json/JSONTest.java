@@ -220,6 +220,13 @@ class JSONTest {
         assertEquals(json.point(".double").get().asDouble(), 2.5d);
         assertEquals(json.point(".BigDecimal").get().asBigDecimal(), BigDecimal.valueOf(1));
         assertEquals(json.point(".boolean").get().asBoolean(), false);
+
+        assertEquals(json.point(".boolean").get().asObject(), false);
+        assertEquals(json.point(".int").get().asObject(), 1);
+        assertEquals(json.point(".string").get().asObject(), "2");
+        assertEquals(json.point(".float").get().asObject(), 2.5f);
+        assertEquals(json.point(".double").get().asObject(), 2.5d);
+
         Assertions.assertNull(json.point(".null").get().asNull());
 
         assertEquals(
@@ -3665,8 +3672,8 @@ class JSONTest {
         var obj = JSON.parse("{\"id\":\"424C6EB8FDBE4A478C1E420806525D19\",\"from\":40,\"name\":\"test3\",\"alias\":\"82sdsadsadasdsadsaddsadsadsadsacxzcasdsadswqewqewqsdsadsadsaewqe\",\"image\":\"http://dummyimage.com/400x400\",\"price\":13,\"equity\":\"magna dolor\",\"status\":1,\"pattern\":0,\"urlFrom\":0,\"category\":0,\"createdAt\":1670293312,\"describes\":[\"quisnulladasdsadsadsadsadsadsa\",\"quisnulladasdsadsadsadsadsadsa\",\"quisnulladasdsadsadsadsadsadsa\"],\"isDeleted\":0,\"tocBuyUrl\":\"http://vclp.nc/ridspj\",\"supplierId\":0,\"commodityCode\":\"82sdsadsadasdsadsaddsadsadsadsacxzcasdsadswqewqewqsdsadsadsaewqe\",\"createdCoreOrgId\":\"000\"}")
             .getJSON();
 
-        System.out.println(JSON.sPut("timestamp", List.of(obj, 1)).toString());
-        System.out.println(JSON.sAdd(List.of(obj, 1)).toString());
+        System.out.println(JSON.sPut("timestamp", List.of(obj, 1)));
+        System.out.println(JSON.sAdd(List.of(obj, 1)));
 
     }
 
