@@ -3703,6 +3703,17 @@ class JSONTest {
     }
 
     @Test
+    void merge() {
+        JSON assign1 = JSON.parse("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        JSON assign2 = assign1.merge(A.builder().a(null).b(A.B.builder().b("b").build()).build());
+
+        var a = A.builder().a("a").b(A.B.builder().b("b").build()).build();
+        var b = A.builder().a(null).b(A.B.builder().b("b").build()).build();
+
+        assign2 = JSON.assign(a, b);
+    }
+
+    @Test
     void newObjectAssign() {
 
         JSON json = JSON.createObject();
@@ -3718,5 +3729,27 @@ class JSONTest {
         Assertions.assertEquals(JSON.assign(JSON.createObject(), assign1, assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
         Assertions.assertEquals(assign1, "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
         Assertions.assertEquals(JSON.parse(assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
+    }
+
+    @Test
+    void newObjectAssign1() {
+
+        JSON json = JSON.createObject();
+        System.out.println(
+            json.point("?.renewal?.record").defaultValue(List.of()).get().asList()
+        );
+    }
+
+    @Test
+    void jsonValueToString() {
+        JSON json = JSON.sPut("request", java.util.Map.of(
+            "modelAndOperation", "|find",
+            "params", java.util.Map.of(
+                "logic", JSON.sPut("id", "1"),
+                "join", List.of(JSON.sPut("ID", "1"), JSON.sPut("ID", "2"))
+            )
+        ));
+
+        System.out.println(json.toString());
     }
 }

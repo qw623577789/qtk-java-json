@@ -1,6 +1,12 @@
 package team.qtk.json.point;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import team.qtk.json.JSON;
+import team.qtk.json.node.Node;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,13 +15,6 @@ import java.util.function.Supplier;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
-import team.qtk.json.JSON;
-import team.qtk.json.node.Node;
 
 public class Point {
 
@@ -141,7 +140,7 @@ public class Point {
         //空数组也算has
         return result.isArray()
             ? (
-            result.size() == 0 || result.getValueNode().stream().anyMatch(item -> !item.isMissingNode())
+            result.isEmpty() || result.getValueNode().stream().anyMatch(item -> !item.isMissingNode())
         )
             : !result.getValueNode().isMissingNode();
     }
@@ -162,7 +161,7 @@ public class Point {
             .matcher(lastPointKey)
             .results()
             .map(MatchResult::group)
-            .collect(Collectors.toList());
+            .toList();
 
         // 是否为纯数组节点
         boolean isArrayKey = Pattern
@@ -190,7 +189,7 @@ public class Point {
         }
 
         String parentPointKey = String.join("", parentPointKeyStage);
-        if (parentPointKey.equals("")) parentPointKey = ".";
+        if (parentPointKey.isEmpty()) parentPointKey = ".";
 
         return new Object[]{ parentPointKey, lastPointKey, isArrayKey };
     }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -29,7 +30,8 @@ public class JSON {
 
     private static ObjectMapper defaultJackson = new ObjectMapper()
         .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true)) //修复bigDecimal 1.0 转化后丢失.0问题
-        .registerModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()));
+        .registerModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()))
+        .registerModule(new SimpleModule().addSerializer(JSON.class, new JsonJSONParser())); //修复JSON类型嵌套堆栈溢出问题
 
     public ObjectMapper jackson;
 
@@ -42,7 +44,8 @@ public class JSON {
         JsonMapper.Builder customJacksonBuilder = JsonMapper
             .builder()
             .nodeFactory(JsonNodeFactory.withExactBigDecimals(true)) //修复bigDecimal 1.0 转化后丢失.0问题
-            .addModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()));
+            .addModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()))
+            .addModule(new SimpleModule().addSerializer(JSON.class, new JsonJSONParser())); //修复JSON类型嵌套堆栈溢出问题;
 
         return new JSONConfig(customJacksonBuilder);
     }
@@ -127,8 +130,7 @@ public class JSON {
 
     @SneakyThrows
     private static JSON parse(ObjectMapper jacksonMapper, Object object) {
-        if (object instanceof String) {
-            String string = (String) object;
+        if (object instanceof String string) {
             return (
                 (string.startsWith("{") && string.endsWith("}")) ||
                     (string.startsWith("[") && string.endsWith("]"))
@@ -1300,7 +1302,7 @@ public class JSON {
     }
 
     public Object getNullableObject(String point, Supplier<Object> defaultValueSupplier) {
-        return getNullableObject(point, defaultValueSupplier);
+        return getNullableAs(point, Object.class, defaultValueSupplier);
     }
 
     public Object getNullableObject(Supplier<Object> defaultValueSupplier) {
@@ -1317,7 +1319,7 @@ public class JSON {
 
     public static class JSONConfig {
 
-        private JsonMapper.Builder customJacksonBuilder;
+        private final JsonMapper.Builder customJacksonBuilder;
 
         private ObjectMapper customJacksonMapper;
 

@@ -27,7 +27,7 @@ public class Get {
     @Getter
     private Node valueNode;
 
-    private HashMap<Pattern, DefaultType> regexpDefaultValueMapper = new HashMap<>();
+    private final HashMap<Pattern, DefaultType> regexpDefaultValueMapper = new HashMap<>();
 
     private boolean nullable = false;
 
@@ -203,7 +203,7 @@ public class Get {
                         subNode = node.get(realKey);
                     }
 
-                    if (arrayIndexes.size() == 0) { //对象
+                    if (arrayIndexes.isEmpty()) { //对象
                         collection.add(subNode);
                     } else {
                         collection.addAll(

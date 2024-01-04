@@ -12,9 +12,12 @@ plugins {
 }
 
 group = "team.qtk"
-version = "1.14.4"
-sourceCompatibility = 11
-targetCompatibility = 11
+version = "1.14.5"
+
+java {
+    sourceCompatibility = 17
+    targetCompatibility = 17
+}
 
 repositories {
     mavenCentral()
@@ -25,14 +28,14 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:2.13.1"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.12.7"
     implementation "com.github.qw623577789:qtk-stream:1.0.1"
-    implementation 'org.projectlombok:lombok:1.18.22'
+    implementation 'org.projectlombok:lombok:1.18.30'
     
     // 普通编译时ADT
-    annotationProcessor 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
 
     // 测试时ADT
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.22'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'

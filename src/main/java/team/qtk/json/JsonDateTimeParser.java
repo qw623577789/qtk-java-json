@@ -1,7 +1,6 @@
 package team.qtk.json;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 
@@ -22,8 +21,7 @@ public class JsonDateTimeParser extends JsonDeserializer<LocalDateTime> {
             String tryTransformToString = jsonParser.getText();
             try {
                 return LocalDateTime.parse(tryTransformToString, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            }
-            catch (Exception error) {
+            } catch (Exception error) {
                 return LocalDate.parse(tryTransformToString, DateTimeFormatter.ofPattern("yyyy-MM-dd")).atStartOfDay();
             }
         } else {
