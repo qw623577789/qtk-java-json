@@ -11,18 +11,22 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.SneakyThrows;
+import team.qtk.json.point.Get;
 import team.qtk.json.point.Point;
 import team.qtk.json.point.Point.DefaultValueMap;
+import team.qtk.stream.Stream;
 
 import java.io.File;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -186,6 +190,102 @@ public class JSON {
         return point(".");
     }
 
+    /**
+     * 只保留部分字段,使用前会深拷贝一次
+     * 若想浅拷贝提高性能，使用point().retain()
+     *
+     * @param paths 支持xx、xx.xx
+     * @return
+     */
+    public JSON pick(String... paths) {
+        var cloneJson = this.deepCopy();
+
+        record Field(long level, String fieldName) {
+        }
+
+        // 根据路径归类fieldNames，统一批处理
+        Arrays.stream(paths).reduce(
+                new TreeMap<Field, List<String>>((Comparator.comparingInt(o -> Math.toIntExact(o.level)))),
+                (prev, curr) -> {
+
+                    // 每级节点必须包含子节点，否则将会被过滤
+                    // ."xxx.a.a.a"."aaa".aaaa.aa."aaa".aa 匹配 "xxx.a.a.a"、"aaa"、aaaa、aa、"aaa"、aa
+                    Stream.from(
+                        Pattern
+                            .compile("\".+?\"|(?<=\\.).+?(?=\\.)|(?<=\\.).+?$|[^\\\\.]+") //匹配　."匹配内容"、?."匹配内容"、?.匹配内容.、?.匹配内容
+                            .matcher(curr)
+                            .results()
+                            .map(v -> v.group().replaceAll("\"", ""))
+                    ).forEach(
+                        node -> {
+                            var point = node.index == 0 ? "." : String.join(".", node.list.subList(0, (int) node.index));
+                            var collection = prev.computeIfAbsent(new Field(node.index, point), k -> new ArrayList<>());
+                            if (node.value.contains("[") || node.value.contains("]"))
+                                throw new RuntimeException("层级路径:" + node.value + "不支持数组");
+                            collection.add(node.value);
+                        }
+                    );
+
+                    return prev;
+                },
+                (l, r) -> l
+            )
+            .forEach((pointInfo, pointFieldNames) -> {
+                var point = pointInfo.fieldName();
+                Get pointValue;
+                if (point.equals(".")) {
+                    cloneJson.point(cloneJson.getJacksonNode().isArray() ? ".[*]" : ".").retain(pointFieldNames.toArray(new String[]{}));
+                } else {
+                    cloneJson.point((cloneJson.getJacksonNode().isArray() ? ".[*]." : ".") + point).retain(pointFieldNames.toArray(new String[]{}));
+                }
+            });
+
+        return cloneJson;
+    }
+
+    public JSON exclude(String... paths) {
+        var cloneJson = this.deepCopy();
+
+        record Field(long level, String fieldName) {
+        }
+
+        // 根据路径归类fieldNames，统一批处理
+        Arrays.stream(paths).reduce(
+                new HashMap<String, List<String>>(),
+                (prev, curr) -> {
+
+                    // 每级节点必须包含子节点，否则将会被过滤
+                    // ."xxx.a.a.a"."aaa".aaaa.aa."aaa".aa 匹配 "xxx.a.a.a"、"aaa"、aaaa、aa、"aaa"、aa
+                    var cutInfo = Pattern
+                        .compile("\".+?\"|(?<=\\.).+?(?=\\.)|(?<=\\.).+?$|[^\\\\.]+") //匹配　."匹配内容"、?."匹配内容"、?.匹配内容.、?.匹配内容
+                        .matcher(curr)
+                        .results()
+                        .map(v -> v.group().replaceAll("\"", ""))
+                        .toList();
+
+                    var point = cutInfo.size() == 1 ? "." : String.join(".", cutInfo.subList(0, cutInfo.size() - 1));
+                    var collection = prev.computeIfAbsent(point, k -> new ArrayList<>());
+                    var value = cutInfo.get(cutInfo.size() - 1);
+                    if (value.contains("[") || value.contains("]"))
+                        throw new RuntimeException("层级路径:" + value + "不支持数组");
+                    collection.add(value);
+
+                    return prev;
+                },
+                (l, r) -> l
+            )
+            .forEach((point, pointFieldNames) -> {
+                Get pointValue;
+                if (point.equals(".")) {
+                    cloneJson.point(cloneJson.getJacksonNode().isArray() ? ".[*]" : ".").exclude(pointFieldNames.toArray(new String[]{}));
+                } else {
+                    cloneJson.point((cloneJson.getJacksonNode().isArray() ? ".[*]." : ".") + point).exclude(pointFieldNames.toArray(new String[]{}));
+                }
+            });
+
+        return cloneJson;
+    }
+
     public JSON put(String id, Object value) {
         ObjectNode objectNode = (ObjectNode) (this.json);
         if (value == null) {
@@ -292,6 +392,31 @@ public class JSON {
         } else {
             return this.json.toString();
         }
+    }
+
+    @AllArgsConstructor
+    @Getter
+    public static class GetAsIf<T> {
+        private String point;
+        private T pointValue;
+        private Class asType;
+
+        public static <POINT_TYPE> GetAsIf of(String point, POINT_TYPE pointValue, Class asType) {
+            return new GetAsIf(point, pointValue, asType);
+        }
+    }
+
+    public Object getAsIf(Function<JSON, Class> ifs) {
+        return this.getAs(".", ifs.apply(this));
+    }
+
+    public Object getAsIf(GetAsIf... ifs) {
+        for (var i : ifs) {
+            if (getNullableAs(i.getPoint(), i.getPointValue().getClass()).equals(i.getPointValue())) {
+                return this.getAs(".", i.getAsType());
+            }
+        }
+        throw new RuntimeException("无法匹配if情况");
     }
 
     public <T> T getAs(String point, Class<T> type) {
@@ -1412,5 +1537,6 @@ public class JSON {
         public JSON parse(Object object) {
             return JSON.parse(customJacksonMapper, object);
         }
+
     }
 }

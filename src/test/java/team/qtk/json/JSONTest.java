@@ -667,6 +667,206 @@ class JSONTest {
     }
 
     @Test
+    void pointPick() {
+        JSON json = JSON
+            .sPut("int", 1)
+            .put("string", "2")
+            .put("float", 2.5f)
+            .put("double", 2.5d)
+            .put("BigDecimal", BigDecimal.valueOf(1))
+            .put("boolean", false)
+            .put("null", null)
+            .put(
+                "map",
+                new HashMap<String, String>() {
+                    {
+                        put("a", "1");
+                        put("b", "2");
+                    }
+                }
+            )
+            .put("JSON.Map", JSON.sPut("m1", "1").put("m2", "2"))
+            .put(
+                "List",
+                new ArrayList<String>() {
+                    {
+                        add("1");
+                        add("2");
+                    }
+                }
+            )
+            .put(
+                "ListMap",
+                JSON.sAdd(
+                    JSON
+                        .sPut("id1", "1")
+                        .put("id2", "2")
+                        .put(
+                            "id3",
+                            JSON.sAdd(
+                                JSON.sAdd(
+                                    JSON
+                                        .sPut("id11", "1")
+                                        .put("id22", "2")
+                                        .put("id33", JSON.sPut("id333", "value1"))
+                                )
+                            )
+                        ),
+                    JSON
+                        .sPut("id1", "11")
+                        .put("id2", "22")
+                        .put(
+                            "id3",
+                            JSON.sAdd(
+                                JSON.sAdd(
+                                    JSON
+                                        .sPut("id11", "11")
+                                        .put("id22", "22")
+                                        .put("id33", JSON.sPut("id333", "value2"))
+                                )
+                            )
+                        )
+                )
+            )
+            .put(
+                "JSON.List",
+                JSON
+                    .sAdd(1)
+                    .add(2, 4)
+                    .add(5)
+                    .add(
+                        new ArrayList<Integer>() {
+                            {
+                                add(6);
+                                add(7);
+                            }
+                        }
+                    )
+            );
+
+        JSON jsonArray = JSON.sAdd(json, json.deepCopy().put("int", 2));
+
+//        System.out.println(json.point().pick("int", "string", "map").point(".map").pick("a").toString());
+        assertEquals(
+            json.deepCopy().point().retain("int", "string", "map").point(".map").retain("a").toString(),
+            json.pick(".int", ".string", ".map.a").toString()
+        );
+        assertTrue(json.pick(".int").point(".int").has());
+        assertTrue(json.pick(".\"JSON.Map\"").point(".\"JSON.Map\"").has());
+        assertTrue(json.pick(".map.a").point(".map.a").has());
+
+        assertTrue(jsonArray.point(".[1].ListMap[*].id3[*][*]").retain("id33").point(".[1].ListMap[*].id3[*][*].id33.id333").has());
+        assertFalse(jsonArray.point(".[1].ListMap[*].id3[*][*]").retain("id33").point(".[1].ListMap[*].id3[*][*].id22").has());
+        assertTrue(jsonArray.point(".[1].ListMap[*].id3[*][*]").retain("id33").point(".[0].ListMap[*].id3[*][*].id33.id333").has());
+        assertTrue(jsonArray.point(".[1].ListMap[*].id3[*][*]").retain("id33").point(".[0].ListMap[*].id3[*][*].id22").has());
+
+        assertTrue(jsonArray.pick(".int").point(".[0].int").has());
+        assertTrue(jsonArray.pick(".int").point(".[1].int").has());
+        assertFalse(jsonArray.pick(".int").point(".[0].string").has());
+        assertFalse(jsonArray.pick(".int").point(".[1].string").has());
+    }
+
+    @Test
+    void pointExclude() {
+        JSON json = JSON
+            .sPut("int", 1)
+            .put("string", "2")
+            .put("float", 2.5f)
+            .put("double", 2.5d)
+            .put("BigDecimal", BigDecimal.valueOf(1))
+            .put("boolean", false)
+            .put("null", null)
+            .put(
+                "map",
+                new HashMap<String, String>() {
+                    {
+                        put("a", "1");
+                        put("b", "2");
+                    }
+                }
+            )
+            .put("JSON.Map", JSON.sPut("m1", "1").put("m2", "2"))
+            .put(
+                "List",
+                new ArrayList<String>() {
+                    {
+                        add("1");
+                        add("2");
+                    }
+                }
+            )
+            .put(
+                "ListMap",
+                JSON.sAdd(
+                    JSON
+                        .sPut("id1", "1")
+                        .put("id2", "2")
+                        .put(
+                            "id3",
+                            JSON.sAdd(
+                                JSON.sAdd(
+                                    JSON
+                                        .sPut("id11", "1")
+                                        .put("id22", "2")
+                                        .put("id33", JSON.sPut("id333", "value1"))
+                                )
+                            )
+                        ),
+                    JSON
+                        .sPut("id1", "11")
+                        .put("id2", "22")
+                        .put(
+                            "id3",
+                            JSON.sAdd(
+                                JSON.sAdd(
+                                    JSON
+                                        .sPut("id11", "11")
+                                        .put("id22", "22")
+                                        .put("id33", JSON.sPut("id333", "value2"))
+                                )
+                            )
+                        )
+                )
+            )
+            .put(
+                "JSON.List",
+                JSON
+                    .sAdd(1)
+                    .add(2, 4)
+                    .add(5)
+                    .add(
+                        new ArrayList<Integer>() {
+                            {
+                                add(6);
+                                add(7);
+                            }
+                        }
+                    )
+            );
+
+        JSON jsonArray = JSON.sAdd(json, json.deepCopy().put("int", 2));
+
+//        System.out.println(json.point().pick("int", "string", "map").point(".map").pick("a").toString());
+        assertEquals(
+            json.deepCopy().point().exclude("int", "string").point(".map").exclude("a").toString(),
+            json.exclude(".int", ".string", ".map.a").toString()
+        );
+        assertFalse(json.exclude(".int").point(".int").has());
+        assertFalse(json.exclude(".\"JSON.Map\"").point(".\"JSON.Map\"").has());
+        assertFalse(json.exclude(".map.a").point(".map.a").has());
+
+        assertFalse(jsonArray.point(".[1].ListMap[*].id3[*][*]").exclude("id33").point(".[1].ListMap[*].id3[*][*].id33.id333").has());
+        assertTrue(jsonArray.point(".[1].ListMap[*].id3[*][*]").exclude("id33").point(".[1].ListMap[*].id3[*][*].id22").has());
+        assertTrue(jsonArray.point(".[1].ListMap[*].id3[*][*]").exclude("id33").point(".[0].ListMap[*].id3[*][*].id33.id333").has());
+        assertTrue(jsonArray.point(".[1].ListMap[*].id3[*][*]").exclude("id33").point(".[0].ListMap[*].id3[*][*].id22").has());
+
+        assertFalse(jsonArray.exclude(".int").point(".[0].int").has());
+        assertFalse(jsonArray.exclude(".int").point(".[1].int").has());
+        assertTrue(jsonArray.exclude(".int").point(".[0].string").has());
+        assertTrue(jsonArray.exclude(".int").point(".[1].string").has());
+    }
+
+    @Test
     void pointPut() {
         JSON json = JSON
             .sPut("int", 1)
@@ -3751,5 +3951,43 @@ class JSONTest {
         ));
 
         System.out.println(json.toString());
+    }
+
+    @Test
+    void getAsIf() {
+        record Type1(Integer type, Integer key) {
+        }
+        record Type2(Integer type, String key) {
+        }
+
+        var json1 = JSON.sPut("type", 1).put("key", 1);
+        var getAs1 = json1.getAsIf(JSON.GetAsIf.of(".type", 1, Type1.class), JSON.GetAsIf.of(".type", 2, Type2.class));
+        assertTrue(getAs1 instanceof Type1);
+
+        var getAs11 = json1.getAsIf(j -> {
+            if (j.getNullableInt(".type") == 1) {
+                return Type1.class;
+            } else if (j.getNullableInt(".type") == 2) {
+                return Type2.class;
+            } else {
+                throw new RuntimeException("匹配失败");
+            }
+        });
+        assertTrue(getAs11 instanceof Type1);
+
+        var json2 = JSON.sPut("type", 2).put("key", "2");
+        var getAs2 = json2.getAsIf(JSON.GetAsIf.of(".type", 1, Type1.class), JSON.GetAsIf.of(".type", 2, Type2.class));
+        assertTrue(getAs2 instanceof Type2);
+
+        var getAs22 = json2.getAsIf(j -> {
+            if (j.getNullableInt(".type") == 1) {
+                return Type1.class;
+            } else if (j.getNullableInt(".type") == 2) {
+                return Type2.class;
+            } else {
+                throw new RuntimeException("匹配失败");
+            }
+        });
+        assertTrue(getAs22 instanceof Type2);
     }
 }

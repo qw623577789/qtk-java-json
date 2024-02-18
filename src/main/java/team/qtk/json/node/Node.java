@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 @Data
 @Builder
@@ -72,9 +74,21 @@ public class Node {
         return this.jacksonNode.has(index);
     }
 
-    public void remove(String fieldName) {
+//    public void remove(String fieldName) {
+//        if (this.jacksonNode.isMissingNode()) return;
+//        ((ObjectNode) this.jacksonNode).remove(fieldName);
+//    }
+
+    public void remove(String... fieldNames) {
         if (this.jacksonNode.isMissingNode()) return;
-        ((ObjectNode) this.jacksonNode).remove(fieldName);
+        ((ObjectNode) this.jacksonNode).remove(Arrays.asList(fieldNames));
+    }
+
+    public Node retain(String... fieldNames) {
+        return Node.gen(
+            ((ObjectNode) this.jacksonNode).retain(fieldNames),
+            this.path
+        );
     }
 
     public static Node createNullNode(String path) {

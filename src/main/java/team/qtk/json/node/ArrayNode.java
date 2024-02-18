@@ -1,10 +1,11 @@
 package team.qtk.json.node;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.ArrayList;
-import java.util.stream.Stream;
 import lombok.Getter;
 import team.qtk.json.JSON;
+
+import java.util.ArrayList;
+import java.util.stream.Stream;
 
 public class ArrayNode extends Node {
 
@@ -55,8 +56,8 @@ public class ArrayNode extends Node {
     public ArrayNode addAll(ArrayNode nodes) {
         this.nodes.addAll(nodes.getNodes());
         ((com.fasterxml.jackson.databind.node.ArrayNode) this.jacksonNode).addAll(
-                (com.fasterxml.jackson.databind.node.ArrayNode) nodes.jacksonNode
-            );
+            (com.fasterxml.jackson.databind.node.ArrayNode) nodes.jacksonNode
+        );
         return this;
     }
 

@@ -235,6 +235,56 @@ public class Point {
         return this.jsonHelper;
     }
 
+    public JSON exclude(String... fieldNames) {
+        Get pointValue = get(false, false, false);
+
+        if (pointValue.isArray()) {
+            pointValue
+                .getValueNode()
+                .stream()
+                .forEach(
+                    operaNode -> {
+                        if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+                        operaNode.remove(fieldNames);
+                    }
+                );
+        } else {
+            Node operaNode = pointValue.getValueNode();
+            if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+            operaNode.remove(fieldNames);
+        }
+
+        return this.jsonHelper;
+    }
+
+    /**
+     * 只保留部分字段，不支持子路径
+     *
+     * @param fieldNames
+     * @return
+     */
+    public JSON retain(String... fieldNames) {
+        Get pointValue = get(false, false, false);
+
+        if (pointValue.isArray()) {
+            pointValue
+                .getValueNode()
+                .stream()
+                .forEach(
+                    operaNode -> {
+                        if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+                        operaNode.retain(fieldNames);
+                    }
+                );
+        } else {
+            Node operaNode = pointValue.getValueNode();
+            if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+            operaNode.retain(fieldNames);
+        }
+
+        return this.jsonHelper;
+    }
+
     public JSON add(Object... items) {
         Get pointValue = get(false, false, false);
 
