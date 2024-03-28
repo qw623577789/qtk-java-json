@@ -3990,4 +3990,11 @@ class JSONTest {
         });
         assertTrue(getAs22 instanceof Type2);
     }
+
+    @Test
+    void rmNull() {
+        assertEquals("{\"a\":1,\"c\":\"2\"}", JSON.sPut("a", 1).put("b", null).put("c", "2").put("d", null)
+            .rmNull()
+            .toString());
+    }
 }

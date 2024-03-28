@@ -42,6 +42,7 @@ dependencies {
 - **JSON createArray()** 快速创建空数组的JSON实例
 - **JSON assign(Object target, Object... sources)** JSON对象合并
 - **JsonNode getJacksonNode()** 将JSON实例转换为com.fasterxml.jackson的``JsonNode``
+- **JSON rmNull()** 删除对象节点下所有为null的key
 
 ### JSON新增
 
@@ -67,42 +68,43 @@ dependencies {
   对象)，在``get``、``has``操作时，若**节点不存在**时．**执行函数/直接**返回默认值
 - **JSONConfig config()** 自定义jackson库特性后进行JSON操作
 - Point操作
-  - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性
-    **)
-    - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、*
-      *Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、*
-      *List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\>
-      itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String,
-      Object\> asMap()**、**JSON asJSON()**、**size()**
-    - **Object getAsIf(Function<JSON, Class> ifs)、Object getAsIf(GetAsIf... ifs)** 根据值情况，动态指定getAs类型
-  - **Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable)** 在上get方法基础上，可以控制*
-    *是否开启默认值**、**是否开启可选链**特性, ``nullable``控制当最终结果不存在时，**是否返回null，否则在没有可选链标注情况下，会抛空指针错误
-    **,*此属性等同于给point每个节点加上可选链标志*
-  - **JSON put(String id, Object value)** 给对应point的JSON对象节点赋值，支持**大部分JAVA对象**、**JSON实例**、*
-    *com.fasterxml.jackson的``JsonNode``**
-  - **JSON put(Object value)** 给对应point的JSON对象节点赋值(**节点名在point里**)，支持**大部分JAVA对象**、**JSON实例**、
-    **com.fasterxml.jackson的``JsonNode``**
-  - **JSON add(Object... items)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、*
-    *com.fasterxml.jackson的``JsonNode``**
-  - **JSON concat(List\<Object\> list)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、*
-    *com.fasterxml.jackson的``JsonNode``**
-  - **boolean has()** 判断point对应节点值有没有存在(*默认会开启默认值特性*)
-  - **boolean has(boolean toWithDefault)** 判断point对应节点值有没有存在,可设定启不启用*默认值特性*
-  - **JSON delete()** 删除point节点的值
-  - **JSON backToJSON()** 返回``Point``实例所在的``JSON``实例
-  - **Point defaultValue(Object defaultValue, boolean toUpdateNode)/Point defaultValue(HashMap\<String, Object\>
-    defaultValueMap, boolean toUpdateNode)** 设置节点默认值，``toUpdateNode``含义见上面有相同说明
-  - **Point point(String point)** 在原来Point上在延伸point, 例如: point(".aaa.bbb")等同于point(".aaa").point(".bbb")
-    ,此特性用于支持point节点分级
-  - **boolean isArray()** 返回point节点是否为数组节点
-  - **boolean isObject()** 返回point节点是否为对象节点
-  - **boolean isNull()** 返回point节点是否为Null节点
-  - **boolean isMissing()** 返回point节点是否为Missing节点
-  - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
-  - **String toString(boolean pretty, int spaceAmount)** 将Point实例转换为JSON字符串, ``pretty``
-    控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
-  - **JSON retain(String... fieldName)** 只保留当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
-  - **JSON exclude(String... fieldName)** 排除当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
+    - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性
+      **)
+        - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、*
+          *Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**\<T\> T as(Class\<T\> type)**、*
+          *List\<Object\> asList**、**\<T\> List\<T\> asList(Class\<T\> itemType)**、**List\<T\> asList(Class\<T\>
+          itemType, boolean ignoreMissingNode)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String,
+          Object\> asMap()**、**JSON asJSON()**、**size()**
+        - **Object getAsIf(Function<JSON, Class> ifs)、Object getAsIf(GetAsIf... ifs)** 根据值情况，动态指定getAs类型
+    - **Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable)** 在上get方法基础上，可以控制*
+      *是否开启默认值**、**是否开启可选链**特性, ``nullable``控制当最终结果不存在时，**是否返回null，否则在没有可选链标注情况下，会抛空指针错误
+      **,*此属性等同于给point每个节点加上可选链标志*
+    - **JSON put(String id, Object value)** 给对应point的JSON对象节点赋值，支持**大部分JAVA对象**、**JSON实例**、*
+      *com.fasterxml.jackson的``JsonNode``**
+    - **JSON put(Object value)** 给对应point的JSON对象节点赋值(**节点名在point里**)，支持**大部分JAVA对象**、**JSON实例**、
+      **com.fasterxml.jackson的``JsonNode``**
+    - **JSON add(Object... items)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、*
+      *com.fasterxml.jackson的``JsonNode``**
+    - **JSON concat(List\<Object\> list)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、*
+      *com.fasterxml.jackson的``JsonNode``**
+    - **boolean has()** 判断point对应节点值有没有存在(*默认会开启默认值特性*)
+    - **boolean has(boolean toWithDefault)** 判断point对应节点值有没有存在,可设定启不启用*默认值特性*
+    - **JSON delete()** 删除point节点的值
+    - **JSON backToJSON()** 返回``Point``实例所在的``JSON``实例
+    - **Point defaultValue(Object defaultValue, boolean toUpdateNode)/Point defaultValue(HashMap\<String, Object\>
+      defaultValueMap, boolean toUpdateNode)** 设置节点默认值，``toUpdateNode``含义见上面有相同说明
+    - **Point point(String point)** 在原来Point上在延伸point, 例如: point(".aaa.bbb")等同于point(".aaa").point(".bbb")
+      ,此特性用于支持point节点分级
+    - **boolean isArray()** 返回point节点是否为数组节点
+    - **boolean isObject()** 返回point节点是否为对象节点
+    - **boolean isNull()** 返回point节点是否为Null节点
+    - **boolean isMissing()** 返回point节点是否为Missing节点
+    - **boolean isEmpty()** 返回point节点是否为空(*数组节点则是空数组,对象节点则是空对象*)
+    - **String toString(boolean pretty, int spaceAmount)** 将Point实例转换为JSON字符串, ``pretty``
+      控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
+    - **JSON retain(String... fieldName)** 只保留当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
+    - **JSON exclude(String... fieldName)** 排除当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
+    - **JSON rmNull()** 删除point对象节点下所有为null的key
 
 ### JSON摘取/忽略节点
 
@@ -121,24 +123,24 @@ dependencies {
 ### 定制JSON库特性(Jackson特性)
 
 - JSONConfig jackson库特性配置，并且使用设置的特性进行JSON操作
-  - **JSONConfig features(HashMap\<FormatFeature, Boolean\> features)** 控制``jackson``库``enable/disable``特性
-  - **JSONConfig serializationInclusion(JsonInclude.Include setSerializationInclusion)** 控制``jackson``
-    库``setSerializationInclusion``特性
-  - **JSONConfig registerModule(com.fasterxml.jackson.databind.Module... module)** 为``jackson``库注册模块
-  - **JSONConfig confirmToCreateMapper()** **<font color=red>最终生成``jackson``库``ObjectMapper``
-    ,应用于后续的操作</font>**
-  - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
-  - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
-  - **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例
-  - **JSON missingNode()** 快速创建``missing``值的JSON实例
-  - **JSON nullNode()** 快速创建``null``值的JSON实例
-  - **JSON createObject()** 快速创建空对象的JSON实例
-  - **JSON createArray()** 快速创建空数组的JSON实例
-  - **JSON assign(Object target, Object... sources)** JSON对象合并
-  - **JSON sPut(String id, Object value)** *静态方法*, 用于创建**JSON对象实例**,并设置key/value, value支持
-    *大部分Java对象*及*JSON实例*
-  - **JSON sAdd(Object ...value)** *静态方法*, 用于创建**JSON数组实例**,并一次性添加无限个元素, value支持
-    *大部分Java对象*及*JSON实例*
+    - **JSONConfig features(HashMap\<FormatFeature, Boolean\> features)** 控制``jackson``库``enable/disable``特性
+    - **JSONConfig serializationInclusion(JsonInclude.Include setSerializationInclusion)** 控制``jackson``
+      库``setSerializationInclusion``特性
+    - **JSONConfig registerModule(com.fasterxml.jackson.databind.Module... module)** 为``jackson``库注册模块
+    - **JSONConfig confirmToCreateMapper()** **<font color=red>最终生成``jackson``库``ObjectMapper``
+      ,应用于后续的操作</font>**
+    - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
+    - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
+    - **JSON parse(Object object)** 可将大部分Java对象转换为JSON实例
+    - **JSON missingNode()** 快速创建``missing``值的JSON实例
+    - **JSON nullNode()** 快速创建``null``值的JSON实例
+    - **JSON createObject()** 快速创建空对象的JSON实例
+    - **JSON createArray()** 快速创建空数组的JSON实例
+    - **JSON assign(Object target, Object... sources)** JSON对象合并
+    - **JSON sPut(String id, Object value)** *静态方法*, 用于创建**JSON对象实例**,并设置key/value, value支持
+      *大部分Java对象*及*JSON实例*
+    - **JSON sAdd(Object ...value)** *静态方法*, 用于创建**JSON数组实例**,并一次性添加无限个元素, value支持
+      *大部分Java对象*及*JSON实例*
 
 ## Usage
 
@@ -551,6 +553,6 @@ json.getNullableXXX(".point", "defaultValue"); //等同于json.point(".point").g
 ### 注意
 
 - 设置了默认值的asList情况, 若point里有``[]``数组下标操作,则默认值是元素的默认值;若无,则是整个节点的默认值.
-  - 例如: point(".a[1].b", "1").asList(), 意思为给a数组下标为1的对象的b节点赋值1; point(".a", new
-    ArrayList\<String\>(){}).asList(),意思是当对象的a节点不存在时,给对象添加一个数组节点a
+    - 例如: point(".a[1].b", "1").asList(), 意思为给a数组下标为1的对象的b节点赋值1; point(".a", new
+      ArrayList\<String\>(){}).asList(),意思是当对象的a节点不存在时,给对象添加一个数组节点a
 - 若point路径某段字段带``.``，那段字段要加上引号。例如{"a": {"aa.bb": 1}}, point正确应该为``.a."aa.bb"``

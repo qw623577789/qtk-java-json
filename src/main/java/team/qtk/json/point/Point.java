@@ -11,6 +11,7 @@ import team.qtk.json.node.Node;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
@@ -332,6 +333,15 @@ public class Point {
 
     public JSON concat(List<Object> list) {
         return add(list.toArray());
+    }
+
+    public JSON rmNull() {
+        if (!this.instance.isObject()) throw new RuntimeException("当前节点非对象节点");
+        var nullKeys = this.instance.properties().stream().filter(i -> i.getValue().isNull())
+            .map(Map.Entry::getKey)
+            .toArray(String[]::new);
+        this.exclude(nullKeys);
+        return this.jsonHelper;
     }
 
     public Point defaultValue(Supplier<Object> defaultValueFunc, boolean toUpdateNode) {

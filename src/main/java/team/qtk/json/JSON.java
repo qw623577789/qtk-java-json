@@ -352,6 +352,10 @@ public class JSON {
         return this;
     }
 
+    public JSON rmNull() {
+        return this.point().rmNull();
+    }
+
     public JSON concat(List<?> list) {
         add(list.toArray());
         return this;
