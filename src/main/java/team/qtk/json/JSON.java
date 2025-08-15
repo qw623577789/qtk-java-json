@@ -361,6 +361,21 @@ public class JSON {
         return this;
     }
 
+    public List<String> keys() {
+        if (!this.json.isObject()) throw new RuntimeException("非对象无法使用keys");
+        return this.json.properties().stream().map(Map.Entry::getKey).collect(Collectors.toList());
+    }
+
+    public List<JSON> values() {
+        if (!this.json.isObject()) throw new RuntimeException("非对象无法使用keys");
+        return this.json.properties().stream().map(entry -> new JSON(entry.getValue())).collect(Collectors.toList());
+    }
+
+    public List<Map.Entry<String, JsonNode>> entries() {
+        if (!this.json.isObject()) throw new RuntimeException("非对象无法使用keys");
+        return new ArrayList<>(this.json.properties());
+    }
+
     @SneakyThrows
     public JSON merge(Object... objects) {
         ObjectReader merger = jackson.readerForUpdating(this.json);

@@ -3997,4 +3997,19 @@ class JSONTest {
             .rmNull()
             .toString());
     }
+
+    @Test
+    void objKeys() {
+        assertEquals("[a, c]", JSON.sPut("a", 1).put("c", "2").keys().toString());
+    }
+
+    @Test
+    void objValues() {
+        assertEquals("[1, \"2\"]", JSON.sPut("a", 1).put("c", "2").values().toString());
+    }
+
+    @Test
+    void objEntries() {
+        assertEquals("[a=1, c=\"2\"]", JSON.sPut("a", 1).put("c", "2").entries().toString());
+    }
 }
