@@ -52,6 +52,10 @@ public class QOneOf<T extends QOneOf> {
         }
     }
 
+    public String toString() {
+        return JSON.parse(this).toString();
+    }
+    
     public boolean isBoolean() {
         return this.value != null && this.value instanceof Boolean;
     }
