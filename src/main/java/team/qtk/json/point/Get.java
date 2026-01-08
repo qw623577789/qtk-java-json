@@ -8,15 +8,13 @@ import team.qtk.json.JSON;
 import team.qtk.json.JsonStringifyPrettyPrinter;
 import team.qtk.json.node.ArrayNode;
 import team.qtk.json.node.Node;
+import team.qtk.json.node.QOneOf;
 import team.qtk.json.point.Point.DefaultType;
 import team.qtk.stream.Stream;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
@@ -404,6 +402,7 @@ public class Get {
         return JSON.parse(this.valueNode.getJacksonNode());
     }
 
+    @SneakyThrows
     public <T> T as(Class<T> type) {
         if (type == JSON.class) return (T) asJSON();
         if (this.valueNode.isMissingNode()) {
@@ -413,9 +412,42 @@ public class Get {
                 throw new NullPointerException(this.valueNode.getPath() + " is missing");
             }
         }
-        return this.valueNode.isNull()
-            ? null
-            : this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), type);
+
+        /*
+         * 其实可以@com.fasterxml.jackson.annotation.JsonCreator + this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), type)实现
+         * 但是发现当原值为null时，不触发JsonCreator，所以只能手动赋值了
+         */
+        var superType = type.getSuperclass();
+        if (superType != null && superType.getName().endsWith("QOneOf")) {
+            QOneOf oneOf = (QOneOf) type.getConstructor().newInstance();
+            if (!this.valueNode.isNull()) {
+                var jackNode = this.valueNode.getJacksonNode();
+                if (jackNode.isTextual()) {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), String.class));
+                } else if (jackNode.isBoolean()) {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Boolean.class));
+                } else if (jackNode.isInt()) {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class));
+                } else if (jackNode.isLong()) {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class));
+                } else if (jackNode.isNumber()) {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), BigDecimal.class));
+                } else if (jackNode.isArray()) {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), ArrayList.class));
+                } else if (jackNode.isObject()) {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), LinkedHashMap.class));
+                } else {
+                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Object.class));
+                }
+            }
+            return (T) oneOf;
+        } else {
+            if (this.valueNode.isNull()) {
+                return null;
+            } else {
+                return this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), type);
+            }
+        }
     }
 
     public List<Object> asList() {
