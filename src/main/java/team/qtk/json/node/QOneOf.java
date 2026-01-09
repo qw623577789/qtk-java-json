@@ -55,7 +55,7 @@ public class QOneOf<T extends QOneOf> {
     public String toString() {
         return JSON.parse(this).toString();
     }
-    
+
     public boolean isBoolean() {
         return this.value != null && this.value instanceof Boolean;
     }
@@ -73,7 +73,7 @@ public class QOneOf<T extends QOneOf> {
     }
 
     public boolean isNull() {
-        return this.value == null;
+        return this.value == null && this.getOtherFields().isEmpty();
     }
 
     public boolean isObject() {
