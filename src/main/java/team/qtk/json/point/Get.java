@@ -2,6 +2,8 @@ package team.qtk.json.point;
 
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import team.qtk.json.JSON;
@@ -73,6 +75,14 @@ public class Get {
 
     public boolean isObject() {
         return valueNode.isObject();
+    }
+
+    public boolean isString() {
+        return valueNode.getJacksonNode() instanceof TextNode;
+    }
+
+    public boolean isNumber() {
+        return valueNode.getJacksonNode() instanceof NumericNode;
     }
 
     public Get get(
