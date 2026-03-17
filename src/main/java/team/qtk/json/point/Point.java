@@ -19,6 +19,10 @@ import java.util.stream.Collectors;
 
 public class Point {
 
+    private static final Pattern BREADCRUMB_PATTERN = Pattern.compile("\\.\".*?\"|\\..*?(?=\\.)|\\..*$");
+    private static final Pattern KEY_INFO_PATTERN = Pattern.compile("([\\w|.]+)|(?<=\\[)([0-9]+|\\*)(?=])");
+    private static final Pattern ARRAY_KEY_PATTERN = Pattern.compile("^(\\[([0-9]+|\\*)])+\\??$");
+
     private String breadcrumb = "";
 
     private String point;
@@ -147,8 +151,7 @@ public class Point {
     }
 
     private Object[] getParentPointKey(String absoluteBreadcrumb) {
-        List<String> keys = Pattern
-            .compile("\\.\".*?\"|\\..*?(?=\\.)|\\..*$") //匹配　."匹配内容"、.匹配内容.、.匹配内容
+        List<String> keys = BREADCRUMB_PATTERN
             .matcher(absoluteBreadcrumb)
             .results()
             .map(MatchResult::group)
@@ -157,16 +160,14 @@ public class Point {
         String lastPointKey = keys.get(keys.size() - 1).replaceAll("\"", "").substring(1);
 
         // 若lastPointKey为数组key
-        List<String> keyInfo = Pattern
-            .compile("([\\w|.]+)|(?<=\\[)([0-9]+|\\*)(?=])")
+        List<String> keyInfo = KEY_INFO_PATTERN
             .matcher(lastPointKey)
             .results()
             .map(MatchResult::group)
             .toList();
 
         // 是否为纯数组节点
-        boolean isArrayKey = Pattern
-            .compile("^(\\[([0-9]+|\\*)])+\\??$")
+        boolean isArrayKey = ARRAY_KEY_PATTERN
             .matcher(lastPointKey)
             .matches();
 

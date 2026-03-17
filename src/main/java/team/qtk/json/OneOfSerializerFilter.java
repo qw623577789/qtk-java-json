@@ -12,6 +12,6 @@ public class OneOfSerializerFilter {
 
     public boolean equals(Object obj) {
         var oneOf = (QOneOf) obj;
-        return oneOf.isNull();
+        return oneOf == null || oneOf.isNull();
     }
 }

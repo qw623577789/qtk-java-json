@@ -12,7 +12,6 @@ import team.qtk.json.node.ArrayNode;
 import team.qtk.json.node.Node;
 import team.qtk.json.node.QOneOf;
 import team.qtk.json.point.Point.DefaultType;
-import team.qtk.stream.Stream;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,6 +22,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Get {
+
+    private static final String[] ESCAPE_CHARS = { "\\", "$", "(", ")", "*", "+", ".", "[", "]", "?", "^", "{", "}", "|", "-" };
+
+    private static final Pattern BREADCRUMB_PATTERN = Pattern.compile("\\??\\.\".*?\"|\\??\\..*?(?=\\??\\.)|\\??\\..*$");
+    private static final Pattern ARRAY_KEY_PATTERN = Pattern.compile("^(\\[([0-9]+|\\*)])+\\??$");
+    private static final Pattern KEY_INFO_PATTERN = Pattern.compile("([^\\[|\\]?]+)|(?<=\\[)([0-9]+|\\*)(?=])");
 
     @Getter
     private Node valueNode;
@@ -39,7 +44,7 @@ public class Get {
             .forEach((key, value1) -> this.regexpDefaultValueMapper.put(
                 Pattern.compile(
                     "^" +
-                        this.escapeExprSpecialWord(key).replaceAll("\\*", "\\d+") +
+                        this.escapeExprSpecialWord(key).replaceAll("\\*", "d+") +
                         "$"
                 ),
                 value1
@@ -48,8 +53,7 @@ public class Get {
     }
 
     public String escapeExprSpecialWord(String keyword) {
-        String[] fbsArr = { "\\", "$", "(", ")", "*", "+", ".", "[", "]", "?", "^", "{", "}", "|", "-" };
-        for (String key : fbsArr) {
+        for (String key : ESCAPE_CHARS) {
             if (keyword.contains(key)) {
                 keyword = keyword.replace(key, "\\" + key);
             }
@@ -98,54 +102,42 @@ public class Get {
 
         if (absouleBreakcrumb.equals(".") || absouleBreakcrumb.equals("?.")) return this;
 
-        this.valueNode =
-            Stream
-                .from(
-                    Pattern
-                        .compile("\\??\\.\".*?\"|\\??\\..*?(?=\\??\\.)|\\??\\..*$") //匹配　."匹配内容"、?."匹配内容"、?.匹配内容.、?.匹配内容
-                        .matcher(absouleBreakcrumb)
-                        .results()
-                        .map(MatchResult::group)
-                )
-                .reduce(
-                    this.valueNode,
-                    (valueNode, node) -> {
-                        boolean isLastKey = node.index == node.size - 1;
+        var matchResults = BREADCRUMB_PATTERN.matcher(absouleBreakcrumb).results().toList();
+        int size = matchResults.size();
 
-                        String key = node.value.substring(node.value.indexOf(".") + 1).replaceAll("\"", "");
+        for (int i = 0; i < size; i++) {
+            var node = matchResults.get(i);
+            boolean isLastKey = i == size - 1;
 
-                        boolean hasNullishKey = supportNullishKey && node.value.startsWith("?");
+            String key = node.group().substring(node.group().indexOf(".") + 1).replaceAll("\"", "");
 
-                        // 若节点为非数组，也处理成数组，下面结果输出时再转化出来
-                        if (!valueNode.isArray()) valueNode =
-                            ArrayNode.create("无意义", this.jsonHelper).add(valueNode);
+            boolean hasNullishKey = supportNullishKey && node.group().startsWith("?");
 
-                        ArrayNode returnNodes =
-                            this.getIterValue(key, (ArrayNode) valueNode, toWithDefault, hasNullishKey);
+            // 若节点为非数组，也处理成数组，下面结果输出时再转化出来
+            if (!this.valueNode.isArray()) {
+                this.valueNode = ArrayNode.create("无意义", this.jsonHelper).add(this.valueNode);
+            }
 
-                        if (!isLastKey) { //非最后一个key的话，其值节点应该是一个非基础元素节点
-                            returnNodes
-                                .stream()
-                                .forEach(
-                                    item -> {
-                                        boolean isValidNode =
-                                            item.isObject() ||
-                                                item.isArray() ||
-                                                item.isMissingNode() ||
-                                                item.isNull();
+            ArrayNode returnNodes =
+                this.getIterValue(key, (ArrayNode) this.valueNode, toWithDefault, hasNullishKey);
 
-                                        if (!isValidNode) throw new RuntimeException(
-                                            "path:" + item.getPath() + "节点非为对象或者空值节点"
-                                        );
-                                    }
-                                );
-                        }
+            if (!isLastKey) { //非最后一个key的话，其值节点应该是一个非基础元素节点
+                for (Node item : returnNodes.getNodes()) {
+                    boolean isValidNode =
+                        item.isObject() ||
+                            item.isArray() ||
+                            item.isMissingNode() ||
+                            item.isNull();
 
-                        //　若路径中存在[*],那结果肯定为数组，否则只需取第一个元素即可(上面非数组节点特殊处理后的转化)
-                        return absouleBreakcrumb.contains("[*]") ? returnNodes : returnNodes.get(0);
-                    },
-                    (l, r) -> l
-                );
+                    if (!isValidNode) throw new RuntimeException(
+                        "path:" + item.getPath() + "节点非为对象或者空值节点"
+                    );
+                }
+            }
+
+            // 若路径中存在[*],那结果肯定为数组，否则只需取第一个元素即可(上面非数组节点特殊处理后的转化)
+            this.valueNode = absouleBreakcrumb.contains("[*]") ? returnNodes : returnNodes.get(0);
+        }
 
         return this;
     }
@@ -157,13 +149,11 @@ public class Get {
         boolean hasNullishKey
     ) {
         // 是否为纯数组节点
-        boolean isArrayKey = Pattern
-            .compile("^(\\[([0-9]+|\\*)])+\\??$") //匹配 .[数字或*]{1,n}可选链标记
+        boolean isArrayKey = ARRAY_KEY_PATTERN
             .matcher(key)
             .matches();
 
-        List<String> keyInfo = Pattern
-            .compile("([^\\[|\\]?]+)|(?<=\\[)([0-9]+|\\*)(?=])") //匹配　匹配内容、匹配内容1[匹配内容2], 即字段名或字段名数组
+        List<String> keyInfo = KEY_INFO_PATTERN
             .matcher(key)
             .results()
             .map(MatchResult::group)
@@ -268,8 +258,7 @@ public class Get {
                                 (collection, node) -> {
                                     String nodePath = node.getPath();
 
-                                    String subNodePath =
-                                        (nodePath.equals(".") ? "." : nodePath) + "[" + arrayIndex + "]";
+                                    String subNodePath = (nodePath.equals(".") ? "." : nodePath) + "[" + arrayIndex + "]";
 
                                     if (node.isMissingNode() || node.isNull()) {
                                         collection.add(node);
@@ -313,7 +302,7 @@ public class Get {
         DefaultType defaultType =
             this.regexpDefaultValueMapper.entrySet()
                 .stream()
-                .filter(entry -> entry.getKey().asPredicate().test(nodePath))
+                .filter(entry -> entry.getKey().asPredicate().test(nodePath.startsWith(".") ? nodePath : "." + nodePath))
                 .findFirst()
                 .map(Map.Entry::getValue)
                 .orElse(null);
@@ -419,13 +408,12 @@ public class Get {
             if (this.nullable) {
                 return null;
             } else {
-                throw new NullPointerException(this.valueNode.getPath() + " is missing");
+                throw new NullPointerException((this.valueNode.getPath().startsWith(".") ? "" : ".") + this.valueNode.getPath() + " is missing");
             }
         }
 
         /*
-         * 其实可以@com.fasterxml.jackson.annotation.JsonCreator + this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), type)实现
-         * 但是发现当原值为null时，不触发JsonCreator，所以只能手动赋值了
+         * 根节点是QOneOf的话，在此执行解析
          */
         var superType = type.getSuperclass();
         if (superType != null && superType.getName().endsWith("QOneOf")) {
@@ -433,21 +421,21 @@ public class Get {
             if (!this.valueNode.isNull()) {
                 var jackNode = this.valueNode.getJacksonNode();
                 if (jackNode.isTextual()) {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), String.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), String.class);
                 } else if (jackNode.isBoolean()) {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Boolean.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Boolean.class);
                 } else if (jackNode.isInt()) {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class);
                 } else if (jackNode.isLong()) {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class);
                 } else if (jackNode.isNumber()) {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), BigDecimal.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), BigDecimal.class);
                 } else if (jackNode.isArray()) {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), ArrayList.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), ArrayList.class);
                 } else if (jackNode.isObject()) {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), LinkedHashMap.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), LinkedHashMap.class);
                 } else {
-                    oneOf.jacksonInject(this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Object.class));
+                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Object.class);
                 }
             }
             return (T) oneOf;
@@ -482,6 +470,7 @@ public class Get {
                 return null;
             } else {
                 String missingPath = valueNode.getPath();
+                missingPath = missingPath.startsWith(".") ? missingPath : ("." + missingPath);
                 throw new NullPointerException(missingPath + " is missing");
             }
         }
@@ -494,6 +483,7 @@ public class Get {
                     .stream()
                     .map(Node::getPath)
                     .collect(Collectors.joining(","));
+                missingPath = (missingPath.startsWith(".") ? "" : ".") + missingPath;
                 throw new NullPointerException(missingPath + " is missing");
             }
         }
@@ -523,7 +513,7 @@ public class Get {
             if (this.nullable) {
                 return null;
             } else {
-                throw new NullPointerException(valueNode.getPath() + " is missing");
+                throw new NullPointerException((valueNode.getPath().startsWith(".") ? "" : ".") + valueNode.getPath() + " is missing");
             }
         }
 
