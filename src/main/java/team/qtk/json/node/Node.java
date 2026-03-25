@@ -46,6 +46,10 @@ public class Node {
         return this.jacksonNode.isEmpty();
     }
 
+    public boolean isNullOrMissing() {
+        return this.jacksonNode.isNull() || this.jacksonNode.isMissingNode();
+    }
+
     public Stream<Node> stream() {
         throw new RuntimeException("非数组禁止使用此方法");
     }

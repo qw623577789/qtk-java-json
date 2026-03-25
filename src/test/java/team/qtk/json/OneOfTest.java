@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import team.qtk.json.node.QOneOf;
 
+import java.util.HashMap;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class OneOfTest {
@@ -126,5 +128,17 @@ public class OneOfTest {
             valueFilter = team.qtk.json.OneOfSerializerFilter.class
         )
         private A nonNull = new A();
+    }
+
+    @Test
+    void map() {
+        var 显式null = JSON.parse("{\"map\":{\"k1\":1,\"k2\":true}}").getAs(C.class);
+        System.out.println(JSON.parse(显式null).toString());
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class C {
+        private HashMap<String, A> map = new HashMap<>();
     }
 }
