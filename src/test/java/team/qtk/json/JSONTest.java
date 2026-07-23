@@ -3907,6 +3907,15 @@ class JSONTest {
         JSON assign1 = JSON.parse("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
         JSON assign2 = assign1.merge(A.builder().a(null).b(A.B.builder().b("b").build()).build());
 
+        assign1 = JSON.parse("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        assign2 = assign1.merge("a", null, "b", A.B.builder().b("b").build());
+
+        assign1 = JSON.parse("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        assign2 = assign1.mergeIgnoreNull(A.builder().a(null).b(A.B.builder().b("b").build()).build());
+
+        assign1 = JSON.parse("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        assign2 = assign1.mergeIgnoreNull("a", null, "b", A.B.builder().b("b").build());
+
         var a = A.builder().a("a").b(A.B.builder().b("b").build()).build();
         var b = A.builder().a(null).b(A.B.builder().b("b").build()).build();
 

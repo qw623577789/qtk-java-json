@@ -377,14 +377,38 @@ public class JSON {
     }
 
     @SneakyThrows
-    public JSON merge(Object... objects) {
-        ObjectReader merger = jackson.readerForUpdating(this.json);
-
-        for (Object object : objects) {
-            merger.readValue(parse(jackson, object).getJacksonNode());
+    public JSON merge(Object... keyValues) {
+        if (keyValues.length % 2 != 0) throw new IllegalArgumentException("keyValues数量必须为双数");
+        var newMap = new HashMap<>();
+        for (var i = 0; i < keyValues.length; i = i + 2) {
+            newMap.put(keyValues[i], keyValues[i + 1]);
         }
+        return merge(newMap);
+    }
 
+    @SneakyThrows
+    public JSON merge(Object value) {
+        ObjectReader merger = jackson.readerForUpdating(this.json);
+        merger.readValue(parse(jackson, value).getJacksonNode());
         return this;
+    }
+
+    @SneakyThrows
+    public JSON mergeIgnoreNull(Object value) {
+        ObjectReader merger = jackson.readerForUpdating(this.json);
+        merger.readValue(parse(jackson, value).rmNull().getJacksonNode());
+        return this;
+    }
+
+    @SneakyThrows
+    public JSON mergeIgnoreNull(Object... keyValues) {
+        if (keyValues.length % 2 != 0) throw new IllegalArgumentException("keyValues数量必须为双数");
+        var newMap = new HashMap<>();
+        for (var i = 0; i < keyValues.length; i = i + 2) {
+            if (keyValues[i + 1] == null) continue;
+            newMap.put(keyValues[i], keyValues[i + 1]);
+        }
+        return merge(newMap);
     }
 
     public JSON deepCopy() {

@@ -118,7 +118,10 @@ dependencies {
 - **(静态方法)JSON assign(Object target, Object... sources)**
   将所有可枚举属性的值从一个或多个源对象复制到目标对象，类似Node的``Object.assign`，可结合给字段加``Jackson的@JsonMerge``
   实现深浅拷贝
-- **(实例方法)JSON merge(Object... sources)** 将所有可枚举属性的值从一个或多个源对象复制到当前对象
+- **(实例方法)JSON merge(Object value)** 将所有可枚举属性的值对象复制到当前对象
+- **(实例方法)JSON merge(Object... keyValues)** 使用K-V形式赋值到当前对象
+- **(实例方法)JSON mergeIgnoreNull(Object value)** 将所有可枚举属性的值对象移除null值后复制到当前对象
+- **(实例方法)JSON mergeIgnoreNull(Object... keyValues)** 使用K-V形式移除null值后赋值到当前对象
 
 ### 定制JSON库特性(Jackson特性)
 
