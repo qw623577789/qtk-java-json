@@ -386,17 +386,21 @@ public class JSON {
         return merge(newMap);
     }
 
-    @SneakyThrows
     public JSON merge(Object value) {
-        ObjectReader merger = jackson.readerForUpdating(this.json);
-        merger.readValue(parse(jackson, value).getJacksonNode());
+        JsonNode source = parse(jackson, value).getJacksonNode();
+        if (!source.isObject()) throw new RuntimeException("非对象无法merge");
+        ObjectNode target = (ObjectNode) this.json;
+        source.properties().forEach(entry -> target.set(entry.getKey(), entry.getValue()));
         return this;
     }
 
-    @SneakyThrows
     public JSON mergeIgnoreNull(Object value) {
-        ObjectReader merger = jackson.readerForUpdating(this.json);
-        merger.readValue(parse(jackson, value).rmNull().getJacksonNode());
+        JsonNode source = parse(jackson, value).getJacksonNode();
+        if (!source.isObject()) throw new RuntimeException("非对象无法merge");
+        ObjectNode target = (ObjectNode) this.json;
+        source.properties().forEach(entry -> {
+            if (!entry.getValue().isNull()) target.set(entry.getKey(), entry.getValue());
+        });
         return this;
     }
 
@@ -409,6 +413,41 @@ public class JSON {
             newMap.put(keyValues[i], keyValues[i + 1]);
         }
         return merge(newMap);
+    }
+
+    @SneakyThrows
+    public JSON mergeDeep(Object... keyValues) {
+        if (keyValues.length % 2 != 0) throw new IllegalArgumentException("keyValues数量必须为双数");
+        var newMap = new HashMap<>();
+        for (var i = 0; i < keyValues.length; i = i + 2) {
+            newMap.put(keyValues[i], keyValues[i + 1]);
+        }
+        return mergeDeep(newMap);
+    }
+
+    @SneakyThrows
+    public JSON mergeDeep(Object value) {
+        ObjectReader merger = jackson.readerForUpdating(this.json);
+        merger.readValue(parse(jackson, value).getJacksonNode());
+        return this;
+    }
+
+    @SneakyThrows
+    public JSON mergeDeepIgnoreNull(Object value) {
+        ObjectReader merger = jackson.readerForUpdating(this.json);
+        merger.readValue(parse(jackson, value).rmNull().getJacksonNode());
+        return this;
+    }
+
+    @SneakyThrows
+    public JSON mergeDeepIgnoreNull(Object... keyValues) {
+        if (keyValues.length % 2 != 0) throw new IllegalArgumentException("keyValues数量必须为双数");
+        var newMap = new HashMap<>();
+        for (var i = 0; i < keyValues.length; i = i + 2) {
+            if (keyValues[i + 1] == null) continue;
+            newMap.put(keyValues[i], keyValues[i + 1]);
+        }
+        return mergeDeep(newMap);
     }
 
     public JSON deepCopy() {
