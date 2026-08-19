@@ -387,6 +387,7 @@ public class JSON {
     }
 
     public JSON merge(Object value) {
+        if (value == null) return this;
         JsonNode source = parse(jackson, value).getJacksonNode();
         if (!source.isObject()) throw new RuntimeException("非对象无法merge");
         ObjectNode target = (ObjectNode) this.json;
@@ -395,6 +396,7 @@ public class JSON {
     }
 
     public JSON mergeIgnoreNull(Object value) {
+        if (value == null) return this;
         JsonNode source = parse(jackson, value).getJacksonNode();
         if (!source.isObject()) throw new RuntimeException("非对象无法merge");
         ObjectNode target = (ObjectNode) this.json;
@@ -427,6 +429,7 @@ public class JSON {
 
     @SneakyThrows
     public JSON mergeDeep(Object value) {
+        if (value == null) return this;
         ObjectReader merger = jackson.readerForUpdating(this.json);
         merger.readValue(parse(jackson, value).getJacksonNode());
         return this;
@@ -434,6 +437,7 @@ public class JSON {
 
     @SneakyThrows
     public JSON mergeDeepIgnoreNull(Object value) {
+        if (value == null) return this;
         ObjectReader merger = jackson.readerForUpdating(this.json);
         merger.readValue(parse(jackson, value).rmNull().getJacksonNode());
         return this;
