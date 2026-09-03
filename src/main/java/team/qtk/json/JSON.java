@@ -115,6 +115,11 @@ public class JSON {
 
     @SneakyThrows
     public static <T> T clone(ObjectMapper jacksonMapper, Object object, Class<T> toClass) {
+        if (toClass == String.class) {
+            // convertValue不支持String目标类型，直接序列化为JSON字符串
+            return (T) (object == null ? null : jacksonMapper.writeValueAsString(object));
+        }
+
         /*
          * 根节点是QOneOf的话，在此执行解析
          */
@@ -149,6 +154,31 @@ public class JSON {
         } else {
             return object == null ? null : jacksonMapper.convertValue(object, toClass);
         }
+    }
+
+    @SneakyThrows
+    public static String stringify(ObjectMapper jacksonMapper, Object object) {
+        return stringify(jacksonMapper, object, false, -1);
+    }
+
+    @SneakyThrows
+    public static String stringify(ObjectMapper jacksonMapper, Object object, boolean pretty, int spaceAmount) {
+        if (pretty) {
+            PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
+            return jacksonMapper.writer(printer).writeValueAsString(object);
+        } else {
+            return jacksonMapper.writeValueAsString(object);
+        }
+    }
+
+    @SneakyThrows
+    public static String stringify(Object object, boolean pretty, int spaceAmount) {
+        return stringify(defaultJackson, pretty, spaceAmount);
+    }
+
+    @SneakyThrows
+    public static String stringify(Object object) {
+        return stringify(defaultJackson, false, -1);
     }
 
     private JSON(JsonNode jacksonNode, ObjectMapper jacksonMapper) {
@@ -513,6 +543,11 @@ public class JSON {
         return this.toString(pretty, 4);
     }
 
+    /**
+     * 效率更好的话，建议stringify
+     *
+     * @return
+     */
     public String toString() {
         return this.toString(false);
     }

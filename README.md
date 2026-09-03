@@ -44,10 +44,10 @@ dependencies {
 - **JsonNode getJacksonNode()** 将JSON实例转换为com.fasterxml.jackson的``JsonNode``
 - **JSON rmNull()** 删除对象节点下所有为null的key
 
-### 对象克隆
+### 额外
 
-- **T clone(Object object, Class<T> toClass)
--
+- 对象克隆: **T clone(Object object, Class<T> toClass)**,性能比``JSON.parse(object).getAs(toClass)``强
+- 序列化: **String stringify(Object object, boolean pretty, int spaceAmount)**,性能比``JSON.parse(object).toString()``强
 
 ### JSON新增
 
