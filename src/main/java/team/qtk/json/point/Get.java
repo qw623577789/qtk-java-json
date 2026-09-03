@@ -415,8 +415,7 @@ public class Get {
         /*
          * 根节点是QOneOf的话，在此执行解析
          */
-        var superType = type.getSuperclass();
-        if (superType != null && superType.getName().endsWith("QOneOf")) {
+        if (QOneOf.class.isAssignableFrom(type)) {
             QOneOf oneOf = (QOneOf) type.getConstructor().newInstance();
             if (!this.valueNode.isNull()) {
                 var jackNode = this.valueNode.getJacksonNode();

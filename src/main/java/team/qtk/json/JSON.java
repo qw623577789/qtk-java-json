@@ -14,6 +14,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import team.qtk.json.node.QOneOf;
 import team.qtk.json.point.Get;
 import team.qtk.json.point.Point;
 import team.qtk.json.point.Point.DefaultValueMap;
@@ -107,6 +108,49 @@ public class JSON {
         this.json = isObject ? this.jackson.createObjectNode() : this.jackson.createArrayNode();
     }
 
+    @SneakyThrows
+    public static <T> T clone(Object object, Class<T> toClass) {
+        return clone(defaultJackson, object, toClass);
+    }
+
+    @SneakyThrows
+    public static <T> T clone(ObjectMapper jacksonMapper, Object object, Class<T> toClass) {
+        /*
+         * 根节点是QOneOf的话，在此执行解析
+         */
+        if (QOneOf.class.isAssignableFrom(toClass)) {
+            QOneOf oneOf = (QOneOf) toClass.getConstructor().newInstance();
+            if (object == null) {
+                oneOf.value = null;
+                return (T) oneOf;
+            }
+
+            var objectValue = object instanceof QOneOf<?> qOneOf ? qOneOf.getRawValue() : object;
+
+            if (objectValue == null) {
+                oneOf.value = null;
+            } else if (objectValue instanceof String || objectValue instanceof Boolean
+                || objectValue instanceof Long || objectValue instanceof BigDecimal) {
+                // 不可变标量直接赋值，避免convertValue的token往返
+                oneOf.value = objectValue;
+            } else if (objectValue instanceof Integer) {
+                oneOf.value = ((Number) objectValue).longValue();
+            } else if (objectValue instanceof Number) {
+                oneOf.value = jacksonMapper.convertValue(objectValue, BigDecimal.class);
+            } else if (objectValue instanceof List<?>) {
+                oneOf.value = jacksonMapper.convertValue(objectValue, ArrayList.class);
+            } else if (objectValue instanceof Map<?, ?>) {
+                oneOf.value = jacksonMapper.convertValue(objectValue, LinkedHashMap.class);
+            } else {
+                oneOf.value = jacksonMapper.convertValue(objectValue, objectValue.getClass());
+            }
+
+            return (T) oneOf;
+        } else {
+            return object == null ? null : jacksonMapper.convertValue(object, toClass);
+        }
+    }
+
     private JSON(JsonNode jacksonNode, ObjectMapper jacksonMapper) {
         this.json = jacksonNode;
         this.jackson = jacksonMapper;
@@ -140,15 +184,18 @@ public class JSON {
                     (string.startsWith("[") && string.endsWith("]"))
             )
                 ? new JSON(jacksonMapper.readTree(string), jacksonMapper)
-                : new JSON(jacksonMapper.valueToTree(object).deepCopy(), jacksonMapper);
+                : new JSON(jacksonMapper.valueToTree(object), jacksonMapper);
         } else if (object instanceof File) {
             return new JSON(jacksonMapper.readTree((File) object), jacksonMapper);
         } else if (object instanceof JSON) {
             return new JSON(((JSON) object).getJacksonNode(), jacksonMapper);
         } else if (object instanceof Reader) {
             return new JSON(jacksonMapper.readTree((Reader) object), jacksonMapper);
+        } else if (object instanceof JsonNode jsonNode) {
+            // valueToTree对JsonNode会直接返回原实例，deepCopy避免后续修改污染外部持有的节点
+            return new JSON(jsonNode.deepCopy(), jacksonMapper);
         } else {
-            return new JSON(jacksonMapper.valueToTree(object).deepCopy(), jacksonMapper);
+            return new JSON(jacksonMapper.valueToTree(object), jacksonMapper);
         }
     }
 

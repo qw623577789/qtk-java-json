@@ -3895,6 +3895,15 @@ class JSONTest {
     }
 
     @Test
+    void values() {
+        var j = JSON.createObject().put("a1", JSON.sPut("v1", "v1").put("v2", "v2"))
+            .put("a2", JSON.sPut("v11", "v11").put("v22", "v22"));
+
+        j.values().forEach(i -> i.merge("v3", "v3"));
+        System.out.println(j.toString());
+    }
+
+    @Test
     void assign() {
         A aObj = A.builder().a("a").b(A.B.builder().b("b").build()).build();
         String assign1 = "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}";
@@ -3930,7 +3939,7 @@ class JSONTest {
         A aObj = A.builder().a("a").b(A.B.builder().b("b").build()).build();
 
         String assign1 = "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}";
-        Assertions.assertEquals(json.merge(aObj, assign1).toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
+        Assertions.assertEquals(json.merge(aObj).merge(assign1).toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
         Assertions.assertEquals(json.toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
         Assertions.assertEquals(JSON.parse(aObj).toString(), "{\"a\":\"a\",\"b\":{\"b\":\"b\"}}");
 

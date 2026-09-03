@@ -7,8 +7,8 @@ import team.qtk.json.OneOfDeserializer;
 import team.qtk.json.point.Point;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 //@JsonSerialize(using = OneOfSerializer.class)
@@ -38,7 +38,7 @@ public class QOneOf<T extends QOneOf> {
     }
 
     public boolean isInteger() {
-        return this.value != null && this.value instanceof Long;
+        return this.value != null && (this.value instanceof Long || this.value instanceof Integer);
     }
 
     public boolean isNumber() {
@@ -54,11 +54,15 @@ public class QOneOf<T extends QOneOf> {
     }
 
     public boolean isObject() {
-        return this.value != null && this.value instanceof LinkedHashMap;
+        return this.value != null && (
+            this.value instanceof Map || (
+                !isBoolean() && !isInteger() && !isNumber() && !isString() && !isArray()
+            )
+        );
     }
 
     public boolean isArray() {
-        return this.value != null && this.value instanceof ArrayList;
+        return this.value != null && this.value instanceof List;
     }
 
     public boolean assertObject(String point, Predicate<Point> pointer) {

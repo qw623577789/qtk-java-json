@@ -44,6 +44,11 @@ dependencies {
 - **JsonNode getJacksonNode()** 将JSON实例转换为com.fasterxml.jackson的``JsonNode``
 - **JSON rmNull()** 删除对象节点下所有为null的key
 
+### 对象克隆
+
+- **T clone(Object object, Class<T> toClass)
+-
+
 ### JSON新增
 
 - **JSON sPut(String id, Object value)** *静态方法*, 用于创建**JSON对象实例**,并设置key/value, value支持*大部分Java对象*
