@@ -173,12 +173,12 @@ public class JSON {
 
     @SneakyThrows
     public static String stringify(Object object, boolean pretty, int spaceAmount) {
-        return stringify(defaultJackson, pretty, spaceAmount);
+        return stringify(defaultJackson, object, pretty, spaceAmount);
     }
 
     @SneakyThrows
     public static String stringify(Object object) {
-        return stringify(defaultJackson, false, -1);
+        return stringify(defaultJackson, object, false, -1);
     }
 
     private JSON(JsonNode jacksonNode, ObjectMapper jacksonMapper) {
