@@ -63,10 +63,14 @@ public class OneOfTest {
         var objRoot = JSON.parse("{\"c\":{\"d\":1}}").getAs(A.class);
         assertNotNull(objRoot);
         assertFalse(JSON.parse(objRoot).toString().contains("null"));
+        objRoot = JSON.clone("{\"c\":{\"d\":1}}", A.class);
+        assertFalse(JSON.parse(objRoot).toString().contains("null"));
 
         var kobjRoot = JSON.parse("{}").getAs(A.class);
         assertNotNull(kobjRoot);
         assertFalse(JSON.parse(kobjRoot).toString().contains("null"));
+        kobjRoot = JSON.clone("{}", A.class);
+        System.out.println(kobjRoot);
 //
         var numberRoot = JSON.parse("11").getAs(A.class);
         assertNotNull(numberRoot);

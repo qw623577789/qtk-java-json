@@ -33,7 +33,7 @@ public class Point {
 
     @Getter
     @Setter
-    private HashMap<String, DefaultType> defaultValueMapper = new HashMap<>();
+    private HashMap<String, DefaultType> defaultValueMapper;
 
     public Point(
         String point,
@@ -74,15 +74,8 @@ public class Point {
     }
 
     public JSON put(String id, Object value) {
-        JsonNode jacksonNode;
-        if (value instanceof JSON) {
-            jacksonNode = ((JSON) value).getJacksonNode();
-        } else if (value instanceof JsonNode) {
-            jacksonNode = (JsonNode) value;
-        } else {
-            jacksonNode = jsonHelper.jackson.valueToTree(value);
-        }
-
+        JsonNode jacksonNode = jsonHelper.toJsonNode(value);
+        
         String absouleBreakcrumb = this.breadcrumb + this.point;
 
         Get pointValue = get(false, false, false);
@@ -92,25 +85,18 @@ public class Point {
                 .getValueNode()
                 .stream()
                 .forEach(
-                    operaNode -> operaNode.set(id, jacksonNode.deepCopy())
+                    operaNode -> operaNode.set(id, jacksonNode)
                 );
         } else {
             Node operaNode = pointValue.getValueNode();
-            operaNode.set(id, jacksonNode.deepCopy());
+            operaNode.set(id, jacksonNode);
         }
 
         return this.jsonHelper;
     }
 
     public JSON put(Object value) {
-        JsonNode jacksonNode;
-        if (value instanceof JSON) {
-            jacksonNode = ((JSON) value).getJacksonNode();
-        } else if (value instanceof JsonNode) {
-            jacksonNode = (JsonNode) value;
-        } else {
-            jacksonNode = jsonHelper.jackson.valueToTree(value);
-        }
+        var jacksonNode = jsonHelper.toJsonNode(value);
 
         String absoluteBreadcrumb = this.breadcrumb + this.point;
 
@@ -126,11 +112,11 @@ public class Point {
                 .getValueNode()
                 .stream()
                 .forEach(
-                    operaNode -> operaNode.set(lastPointKey, jacksonNode.deepCopy())
+                    operaNode -> operaNode.set(lastPointKey, jacksonNode)
                 );
         } else {
             Node operaNode = parentNode.getValueNode();
-            operaNode.set(lastPointKey, jacksonNode.deepCopy());
+            operaNode.set(lastPointKey, jacksonNode);
         }
 
         return this.jsonHelper;
@@ -157,7 +143,7 @@ public class Point {
             .map(MatchResult::group)
             .collect(Collectors.toList());
 
-        String lastPointKey = keys.get(keys.size() - 1).replaceAll("\"", "").substring(1);
+        String lastPointKey = keys.get(keys.size() - 1).replace("\"", "").substring(1);
 
         // 若lastPointKey为数组key
         List<String> keyInfo = KEY_INFO_PATTERN
@@ -246,13 +232,13 @@ public class Point {
                 .stream()
                 .forEach(
                     operaNode -> {
-                        if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+                        if (operaNode.isArray()) throw new RuntimeException("exclude函数不支持数组节点");
                         operaNode.remove(fieldNames);
                     }
                 );
         } else {
             Node operaNode = pointValue.getValueNode();
-            if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+            if (operaNode.isArray()) throw new RuntimeException("exclude函数不支持数组节点");
             operaNode.remove(fieldNames);
         }
 
@@ -274,13 +260,13 @@ public class Point {
                 .stream()
                 .forEach(
                     operaNode -> {
-                        if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+                        if (operaNode.isArray()) throw new RuntimeException("retain函数不支持数组节点");
                         operaNode.retain(fieldNames);
                     }
                 );
         } else {
             Node operaNode = pointValue.getValueNode();
-            if (operaNode.isArray()) throw new RuntimeException("pick函数不支持数组节点");
+            if (operaNode.isArray()) throw new RuntimeException("retain函数不支持数组节点");
             operaNode.retain(fieldNames);
         }
 
@@ -292,41 +278,16 @@ public class Point {
 
         String absoluteBreadcrumb = this.breadcrumb + this.point;
 
+        var jsonNodes = Arrays.stream(items).map(jsonHelper::toJsonNode).toList();
+
         if (absoluteBreadcrumb.contains("[*]")) {
-            pointValue
-                .getValueNode()
-                .stream()
-                .forEach(
-                    i -> {
-                        team.qtk.json.node.ArrayNode operaNode = (team.qtk.json.node.ArrayNode) i;
-                        Arrays.stream(items)
-                            .forEach(
-                                item -> {
-                                    if (item instanceof JSON) {
-                                        operaNode.add((((JSON) item).getJacksonNode()).deepCopy());
-                                    } else if (item instanceof JsonNode) {
-                                        operaNode.add(((JsonNode) item).deepCopy());
-                                    } else {
-                                        operaNode.add(jsonHelper.jackson.valueToTree(item));
-                                    }
-                                }
-                            );
-                    }
-                );
+            pointValue.getValueNode().stream().forEach(i -> {
+                team.qtk.json.node.ArrayNode operaNode = (team.qtk.json.node.ArrayNode) i;
+                jsonNodes.forEach(operaNode::add);
+            });
         } else {
             team.qtk.json.node.ArrayNode operaNode = (team.qtk.json.node.ArrayNode) pointValue.getValueNode();
-            Arrays.stream(items)
-                .forEach(
-                    item -> {
-                        if (item instanceof JSON) {
-                            operaNode.add((((JSON) item).getJacksonNode()).deepCopy());
-                        } else if (item instanceof JsonNode) {
-                            operaNode.add(((JsonNode) item).deepCopy());
-                        } else {
-                            operaNode.add(jsonHelper.jackson.valueToTree(item));
-                        }
-                    }
-                );
+            jsonNodes.forEach(operaNode::add);
         }
 
         return this.jsonHelper;
@@ -337,12 +298,35 @@ public class Point {
     }
 
     public JSON rmNull() {
-        if (!this.instance.isObject()) throw new RuntimeException("当前节点非对象节点");
-        var nullKeys = this.instance.properties().stream().filter(i -> i.getValue().isNull())
+        Get pointValue = get(false, false, false);
+
+        if (pointValue.isArray()) {
+            pointValue
+                .getValueNode()
+                .stream()
+                .forEach(
+                    operaNode -> {
+                        if (operaNode.isArray()) throw new RuntimeException("rmNull函数不支持数组节点");
+                        removeNull(operaNode);
+                    }
+                );
+        } else {
+            Node operaNode = pointValue.getValueNode();
+            if (operaNode.isArray()) throw new RuntimeException("rmNull函数不支持数组节点");
+            removeNull(operaNode);
+        }
+
+        return this.jsonHelper;
+    }
+
+    private void removeNull(Node operaNode) {
+        if (operaNode.isMissingNode() || operaNode.isNull()) return;
+        if (!operaNode.isObject()) throw new RuntimeException("当前节点非对象节点");
+        var nullKeys = operaNode.getJacksonNode().properties().stream()
+            .filter(i -> i.getValue().isNull())
             .map(Map.Entry::getKey)
             .toArray(String[]::new);
-        this.exclude(nullKeys);
-        return this.jsonHelper;
+        operaNode.remove(nullKeys);
     }
 
     public Point defaultValue(Supplier<Object> defaultValueFunc, boolean toUpdateNode) {
@@ -363,13 +347,15 @@ public class Point {
     }
 
     public Point defaultValue(Object defaultValue, boolean toUpdateNode) {
+        if (this.defaultValueMapper == null) this.defaultValueMapper = new HashMap<>();
         DefaultType def = DefaultType.builder().value(defaultValue).toUpdateNode(toUpdateNode).build();
-        this.defaultValueMapper.put((this.breadcrumb + this.point).replaceAll("\"", ""), def);
+        this.defaultValueMapper.put((this.breadcrumb + this.point).replace("\"", ""), def);
         return this;
     }
 
     // default的point必须为point本体子集
     public Point defaultValue(DefaultValueMap defaultValueMap, boolean toUpdateNode) {
+        if (this.defaultValueMapper == null) this.defaultValueMapper = new HashMap<>();
         defaultValueMap
             .forEach((pointPath, value) -> {
                 if (!this.point.replaceAll("\\?", "").startsWith(pointPath)) {
@@ -377,7 +363,7 @@ public class Point {
                         "point:" + pointPath + "必须为point:" + this.point + "子集"
                     );
                 }
-                String absolutePath = (this.breadcrumb + pointPath).replaceAll("\"", "");
+                String absolutePath = (this.breadcrumb + pointPath).replace("\"", "");
                 this.defaultValueMapper.put(
                     absolutePath,
                     DefaultType.builder().value(value).toUpdateNode(toUpdateNode).build()

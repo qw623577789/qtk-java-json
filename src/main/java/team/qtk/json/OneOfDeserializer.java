@@ -7,8 +7,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import lombok.SneakyThrows;
 import team.qtk.json.node.QOneOf;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,17 +15,22 @@ import java.util.Map;
 
 public class OneOfDeserializer extends StdDeserializer<QOneOf> implements ContextualDeserializer {
 
-    private final JavaType targetType;
+    private final Constructor<?> constructor;
 
     public OneOfDeserializer() {
         super(QOneOf.class);
-        this.targetType = null;
+        this.constructor = null;
     }
 
-    // 带类型的构造函数（用于 createContextual）
+    // 带类型的构造函数（用于 createContextual），构造器随实例缓存，避免每次反序列化都反射查找
     private OneOfDeserializer(JavaType targetType) {
         super(QOneOf.class);
-        this.targetType = targetType;
+        this.constructor = getConstructor(targetType.getRawClass());
+    }
+
+    @SneakyThrows
+    private static Constructor<?> getConstructor(Class<?> targetClass) {
+        return targetClass.getConstructor();
     }
 
     /*
@@ -47,13 +51,11 @@ public class OneOfDeserializer extends StdDeserializer<QOneOf> implements Contex
      * @param ctxt Context that can be used to access information about
      *             this deserialization activity.
      * @return
-     * @throws IOException
      */
     @Override
     @SneakyThrows
-    public QOneOf deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-        Class<?> targetClass = targetType.getRawClass();
-        QOneOf instance = (QOneOf) targetClass.getConstructor().newInstance();
+    public QOneOf deserialize(JsonParser p, DeserializationContext ctxt) {
+        QOneOf instance = (QOneOf) constructor.newInstance();
         JsonNode node = p.getCodec().readTree(p);
         instance.value = convertJsonNode(node);
 //        instance.value = parseValueStream(p, ctxt);
@@ -69,8 +71,7 @@ public class OneOfDeserializer extends StdDeserializer<QOneOf> implements Contex
     @Override
     @SneakyThrows
     public QOneOf getNullValue(DeserializationContext ctxt) {
-        Class<?> targetClass = targetType.getRawClass();
-        QOneOf instance = (QOneOf) targetClass.getConstructor().newInstance();
+        QOneOf instance = (QOneOf) constructor.newInstance();
         instance.value = null;
         return instance;
     }
@@ -78,13 +79,13 @@ public class OneOfDeserializer extends StdDeserializer<QOneOf> implements Contex
     // 递归转换 JsonNode 为 Java 对象
     private Object convertJsonNode(JsonNode node) {
         if (node.isObject()) {
-            Map<String, Object> map = new HashMap<>();
-            node.fields().forEachRemaining(entry -> {
+            Map<String, Object> map = new HashMap<>(node.size());
+            for (Map.Entry<String, JsonNode> entry : node.properties()) {
                 map.put(entry.getKey(), convertJsonNode(entry.getValue()));
-            });
+            }
             return map;
         } else if (node.isArray()) {
-            List<Object> list = new ArrayList<>();
+            List<Object> list = new ArrayList<>(node.size());
             node.forEach(item -> list.add(convertJsonNode(item)));
             return list;
         } else if (node.isLong()) {
@@ -92,7 +93,7 @@ public class OneOfDeserializer extends StdDeserializer<QOneOf> implements Contex
         } else if (node.isInt()) {
             return node.longValue();
         } else if (node.isNumber()) {
-            return new BigDecimal(node.asText());
+            return node.decimalValue();
         } else if (node.isBoolean()) {
             return node.asBoolean();
         } else if (node.isTextual()) {

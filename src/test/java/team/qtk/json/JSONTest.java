@@ -73,8 +73,8 @@ class JSONTest {
             .toString();
         System.out.println(json);
         assertEquals(
-            json,
-            "{\"int\":1,\"string\":\"2\",\"float\":2.5,\"double\":2.5,\"BigDecimal\":1,\"boolean\":false,\"null\":null,\"map\":{\"a\":\"1\",\"b\":\"2\"},\"JSON.Map\":{\"m1\":\"1\",\"m2\":\"2\"},\"List\":[\"1\",\"2\"],\"JSON.List\":[1,2,4,5,[6,7]]}"
+            "{\"int\":1,\"string\":\"2\",\"float\":2.5,\"double\":2.5,\"BigDecimal\":1,\"boolean\":false,\"null\":null,\"map\":{\"a\":\"1\",\"b\":\"2\"},\"JSON.Map\":{\"m1\":\"1\",\"m2\":\"2\"},\"List\":[\"1\",\"2\"],\"JSON.List\":[1,2,4,5,[6,7]]}",
+            json
         );
     }
 
@@ -214,18 +214,18 @@ class JSONTest {
         JSON jsonArray = JSON.sAdd(json, json);
         System.out.println(json.toString());
         // System.out.println(json.point(".ListMap[0].id3").get().asString());
-        assertEquals(json.point(".int").get().asInt(), 1);
-        assertEquals(json.point(".string").get().asString(), "2");
-        assertEquals(json.point(".float").get().asFloat(), 2.5f);
-        assertEquals(json.point(".double").get().asDouble(), 2.5d);
+        assertEquals(1, json.point(".int").get().asInt());
+        assertEquals("2", json.point(".string").get().asString());
+        assertEquals(2.5f, json.point(".float").get().asFloat());
+        assertEquals(2.5d, json.point(".double").get().asDouble());
         assertEquals(json.point(".BigDecimal").get().asBigDecimal(), BigDecimal.valueOf(1));
-        assertEquals(json.point(".boolean").get().asBoolean(), false);
+        assertEquals(false, json.point(".boolean").get().asBoolean());
 
-        assertEquals(json.point(".boolean").get().asObject(), false);
-        assertEquals(json.point(".int").get().asObject(), 1);
-        assertEquals(json.point(".string").get().asObject(), "2");
-        assertEquals(json.point(".float").get().asObject(), 2.5f);
-        assertEquals(json.point(".double").get().asObject(), 2.5d);
+        assertEquals(false, json.point(".boolean").get().asObject());
+        assertEquals(1, json.point(".int").get().asObject());
+        assertEquals("2", json.point(".string").get().asObject());
+        assertEquals(2.5f, json.point(".float").get().asObject());
+        assertEquals(2.5d, json.point(".double").get().asObject());
 
         Assertions.assertNull(json.point(".null").get().asNull());
 
@@ -261,9 +261,9 @@ class JSONTest {
                 .hashCode()
         );
 
-        assertEquals(json.point(".map.a").get().asString(), "1");
-        assertEquals(json.point(".List[0]").get().asString(), "1");
-        assertEquals(json.point(".ListMap[0].id1").get().asString(), "1");
+        assertEquals("1", json.point(".map.a").get().asString());
+        assertEquals("1", json.point(".List[0]").get().asString());
+        assertEquals("1", json.point(".ListMap[0].id1").get().asString());
         assertEquals(
             json.point(".ListMap[0].id3[0]").get().asList().hashCode(),
             new ArrayList<>() {
@@ -306,7 +306,7 @@ class JSONTest {
             }
                 .hashCode()
         );
-        assertEquals(json.point(".ListMap[0].id1").get().asString(), "1");
+        assertEquals("1", json.point(".ListMap[0].id1").get().asString());
         assertEquals(
             json.point(".ListMap[*].id1").get().asList(String.class).hashCode(),
             new ArrayList<>() {
@@ -662,7 +662,7 @@ class JSONTest {
 
         jsonArray.point(".[0]").delete();
         assertTrue(jsonArray.point(".[0].int").has());
-        assertEquals(jsonArray.point(".[0].int").get().asInt(), 2);
+        assertEquals(2, jsonArray.point(".[0].int").get().asInt());
         assertFalse(jsonArray.point(".[1].int").has());
     }
 
@@ -948,13 +948,13 @@ class JSONTest {
         System.out.println(json);
 
         json.point(".").put("ex_int", 1);
-        assertEquals(json.point(".ex_int").get().asInt(), 1);
+        assertEquals(1, json.point(".ex_int").get().asInt());
 
         json.point(".").put("ext.int", 1);
-        assertEquals(json.point(".\"ext.int\"").get().asInt(), 1);
+        assertEquals(1, json.point(".\"ext.int\"").get().asInt());
 
         json.point(".map").put("c", 1);
-        assertEquals(json.point(".map.c").get().asInt(), 1);
+        assertEquals(1, json.point(".map.c").get().asInt());
 
         json.point(".ListMap[0].id3[0][0].id33").put("id334", 1);
         assertTrue(json.point(".ListMap[0].id3[0][0].id33.id334").has());
@@ -1068,13 +1068,13 @@ class JSONTest {
         System.out.println(json);
 
         json.point(".ex_int").put(1);
-        assertEquals(json.point(".ex_int").get().asInt(), 1);
+        assertEquals(1, json.point(".ex_int").get().asInt());
 
         json.point(".\"ext.int\"").put(1);
-        assertEquals(json.point(".\"ext.int\"").get().asInt(), 1);
+        assertEquals(1, json.point(".\"ext.int\"").get().asInt());
 
         json.point(".map.c").put(1);
-        assertEquals(json.point(".map.c").get().asInt(), 1);
+        assertEquals(1, json.point(".map.c").get().asInt());
 
         json.point(".ListMap[0].id3[0][0].id33.id334").put(1);
         assertTrue(json.point(".ListMap[0].id3[0][0].id33.id334").has());
@@ -2013,15 +2013,15 @@ class JSONTest {
 
         JSON jsonArray = JSON.sAdd(json, json);
         System.out.println(json.toString());
-        assertEquals(json.point(".int-null", 1).get().asInt(), 1);
-        assertEquals(json.point(".string-null", "2").get().asString(), "2");
-        assertEquals(json.point(".float-null", 2.5f).get().asFloat(), 2.5f);
-        assertEquals(json.point(".double-null", 2.5d).get().asDouble(), 2.5d);
+        assertEquals(1, json.point(".int-null", 1).get().asInt());
+        assertEquals("2", json.point(".string-null", "2").get().asString());
+        assertEquals(2.5f, json.point(".float-null", 2.5f).get().asFloat());
+        assertEquals(2.5d, json.point(".double-null", 2.5d).get().asDouble());
         assertEquals(
             json.point(".BigDecimal-null", BigDecimal.valueOf(1)).get().asBigDecimal(),
             BigDecimal.valueOf(1)
         );
-        assertEquals(json.point(".boolean-null", false).get().asBoolean(), false);
+        assertEquals(false, json.point(".boolean-null", false).get().asBoolean());
         assertNull(json.point(".null-null", null).get().asNull());
 
         assertEquals(
@@ -2092,9 +2092,9 @@ class JSONTest {
                 .hashCode()
         );
 
-        assertEquals(json.point(".map.a-null", "1").get().asString(), "1");
-        assertEquals(json.point(".List[10]", "1").get().asString(), "1");
-        assertEquals(json.point(".ListMap[0].id1-null", "1").get().asString(), "1");
+        assertEquals("1", json.point(".map.a-null", "1").get().asString());
+        assertEquals("1", json.point(".List[10]", "1").get().asString());
+        assertEquals("1", json.point(".ListMap[0].id1-null", "1").get().asString());
         assertEquals(
             json
                 .point(
@@ -2183,7 +2183,7 @@ class JSONTest {
             }
                 .hashCode()
         );
-        assertEquals(json.point(".ListMap[0].id1-null", "1").get().asString(), "1");
+        assertEquals("1", json.point(".ListMap[0].id1-null", "1").get().asString());
         assertEquals(
             json.point(".ListMap[*].id1-null", "fix").get().asList(String.class).hashCode(),
             new ArrayList<>() {
@@ -2262,6 +2262,7 @@ class JSONTest {
         );
 
         assertEquals(
+            "fix",
             json
                 .point(".ListMap[0].id3[0][0].id331.id333-null")
                 .defaultValue(
@@ -2277,8 +2278,7 @@ class JSONTest {
                     }
                 )
                 .get()
-                .asString(),
-            "fix"
+                .asString()
         );
     }
 
@@ -2367,9 +2367,9 @@ class JSONTest {
         JSON jsonArray = JSON.sAdd(json.deepCopy(), json.deepCopy());
         System.out.println(json);
 
-        assertEquals(json.point(".int-null", 1).get().asInt(), 1);
+        assertEquals(1, json.point(".int-null", 1).get().asInt());
         Assertions.assertFalse(json.point(".int-null").has());
-        assertEquals(json.point(".int-null", 1, true).get().asInt(), 1);
+        assertEquals(1, json.point(".int-null", 1, true).get().asInt());
         assertTrue(json.point(".int-null").has());
 
         assertEquals(
@@ -2516,19 +2516,19 @@ class JSONTest {
         );
         assertTrue(json.point(".List-null").has());
 
-        assertEquals(json.point(".map.a-null", "1").get().asString(), "1");
+        assertEquals("1", json.point(".map.a-null", "1").get().asString());
         Assertions.assertFalse(json.point(".map.a-null").has());
-        assertEquals(json.point(".map.a-null", "1", true).get().asString(), "1");
+        assertEquals("1", json.point(".map.a-null", "1", true).get().asString());
         assertTrue(json.point(".map.a-null").has());
 
-        assertEquals(json.point(".List[10]", "1").get().asString(), "1");
+        assertEquals("1", json.point(".List[10]", "1").get().asString());
         Assertions.assertFalse(json.point(".List[10]").has());
-        assertEquals(json.point(".List[10]", "1", true).get().asString(), "1");
+        assertEquals("1", json.point(".List[10]", "1", true).get().asString());
         assertTrue(json.point(".List[0]").has());
 
-        assertEquals(json.point(".ListMap[0].id1-null", "1").get().asString(), "1");
+        assertEquals("1", json.point(".ListMap[0].id1-null", "1").get().asString());
         Assertions.assertFalse(json.point(".ListMap[0].id1-null").has());
-        assertEquals(json.point(".ListMap[0].id1-null", "1", true).get().asString(), "1");
+        assertEquals("1", json.point(".ListMap[0].id1-null", "1", true).get().asString());
         assertTrue(json.point(".ListMap[0].id1-null").has());
 
         assertEquals(
@@ -2954,6 +2954,7 @@ class JSONTest {
         );
 
         assertEquals(
+            "fix",
             json
                 .point(".ListMap[0].id3[0][0].id331.id333-null-hashmap")
                 .defaultValue(
@@ -2969,10 +2970,10 @@ class JSONTest {
                     }
                 )
                 .get()
-                .asString(),
-            "fix"
+                .asString()
         );
         assertEquals(
+            "fix",
             json
                 .point(".ListMap[0].id3[0][0].id331.id333-null-hashmap")
                 .defaultValue(
@@ -2989,28 +2990,26 @@ class JSONTest {
                     true
                 )
                 .get()
-                .asString(),
-            "fix"
+                .asString()
         );
         assertEquals(
-            json.point(".ListMap[0].id3[0][0].id331.id333-null-hashmap").get().asString(),
-            "fix"
+            "fix",
+            json.point(".ListMap[0].id3[0][0].id331.id333-null-hashmap").get().asString()
         );
     }
 
     @Test
     void config() {
-        assertTrue(JSON
-            .config()
-            .features(
-                new HashMap<>() {
-                    {
-                        put(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES, true); //允许key名不写引号
+        assertTrue(JSON.custom(builder -> builder
+                .features(
+                    new HashMap<>() {
+                        {
+                            put(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES, true); //允许key名不写引号
+                        }
                     }
-                }
+                )
+                .serializationInclusion(JsonInclude.Include.NON_NULL)
             )
-            .serializationInclusion(JsonInclude.Include.NON_NULL)
-            .confirmToCreateMapper()
             .parse("{a:1}")
             .getJacksonNode() instanceof ObjectNode);
     }
@@ -3125,12 +3124,12 @@ class JSONTest {
         JSON jsonArray = JSON.sAdd(json, json);
         System.out.println(json.toString());
         // System.out.println(json.point(".ListMap[0].id3").get().asString());
-        assertEquals(json.getInt(".int"), 1);
-        assertEquals(json.getString(".string"), "2");
-        assertEquals(json.getFloat(".float"), 2.5f);
-        assertEquals(json.getDouble(".double"), 2.5d);
+        assertEquals(1, json.getInt(".int"));
+        assertEquals("2", json.getString(".string"));
+        assertEquals(2.5f, json.getFloat(".float"));
+        assertEquals(2.5d, json.getDouble(".double"));
         assertEquals(json.getBigDecimal(".BigDecimal"), BigDecimal.valueOf(1));
-        assertEquals(json.getBoolean(".boolean"), false);
+        assertEquals(false, json.getBoolean(".boolean"));
         assertNull(json.getNull(".null"));
 
         assertEquals(
@@ -3165,9 +3164,9 @@ class JSONTest {
                 .hashCode()
         );
 
-        assertEquals(json.getString(".map.a"), "1");
-        assertEquals(json.getString(".List[0]"), "1");
-        assertEquals(json.getString(".ListMap[0].id1"), "1");
+        assertEquals("1", json.getString(".map.a"));
+        assertEquals("1", json.getString(".List[0]"));
+        assertEquals("1", json.getString(".ListMap[0].id1"));
         assertEquals(
             json.getList(".ListMap[0].id3[0]").hashCode(),
             new ArrayList<>() {
@@ -3210,7 +3209,7 @@ class JSONTest {
             }
                 .hashCode()
         );
-        assertEquals(json.getString(".ListMap[0].id1"), "1");
+        assertEquals("1", json.getString(".ListMap[0].id1"));
         assertEquals(
             json.getList(".ListMap[*].id1", String.class).hashCode(),
             new ArrayList<>() {
@@ -3595,15 +3594,15 @@ class JSONTest {
 
         JSON jsonArray = JSON.sAdd(json, json);
         System.out.println(json.toString());
-        assertEquals(json.getInt(".int-null", 1), 1);
-        assertEquals(json.getString(".string-null", "2"), "2");
-        assertEquals(json.getFloat(".float-null", 2.5f), 2.5f);
-        assertEquals(json.getDouble(".double-null", 2.5d), 2.5d);
+        assertEquals(1, json.getInt(".int-null", 1));
+        assertEquals("2", json.getString(".string-null", "2"));
+        assertEquals(2.5f, json.getFloat(".float-null", 2.5f));
+        assertEquals(2.5d, json.getDouble(".double-null", 2.5d));
         assertEquals(
             json.getBigDecimal(".BigDecimal-null", BigDecimal.valueOf(1)),
             BigDecimal.valueOf(1)
         );
-        assertEquals(json.getBoolean(".boolean-null", false), false);
+        assertEquals(false, json.getBoolean(".boolean-null", false));
         Assertions.assertNull(json.getNull(".null-null", true));
 
         assertEquals(
@@ -3669,9 +3668,9 @@ class JSONTest {
                 .hashCode()
         );
 
-        assertEquals(json.getString(".map.a-null", "1"), "1");
-        assertEquals(json.getString(".List[10]", "1"), "1");
-        assertEquals(json.getString(".ListMap[0].id1-null", "1"), "1");
+        assertEquals("1", json.getString(".map.a-null", "1"));
+        assertEquals("1", json.getString(".List[10]", "1"));
+        assertEquals("1", json.getString(".ListMap[0].id1-null", "1"));
         assertEquals(
             json
                 .getList(
@@ -3756,7 +3755,7 @@ class JSONTest {
             }
                 .hashCode()
         );
-        assertEquals(json.getString(".ListMap[0].id1-null", "1"), "1");
+        assertEquals("1", json.getString(".ListMap[0].id1-null", "1"));
         assertEquals(
             json.getList(".ListMap[*].id1-null", String.class, "fix").hashCode(),
             new ArrayList<>() {
@@ -3829,6 +3828,7 @@ class JSONTest {
         );
 
         assertEquals(
+            "fix",
             json.getString(
                 ".ListMap[0].id3[0][0].id331.id333-null",
                 new DefaultValueMap() {
@@ -3841,8 +3841,7 @@ class JSONTest {
                         put(".ListMap[0].id3[0][0].id331.id333-null", "fix");
                     }
                 }
-            ),
-            "fix"
+            )
         );
     }
 
@@ -3900,15 +3899,7 @@ class JSONTest {
             .put("a2", JSON.sPut("v11", "v11").put("v22", "v22"));
 
         j.values().forEach(i -> i.merge("v3", "v3"));
-        System.out.println(j.toString());
-    }
-
-    @Test
-    void assign() {
-        A aObj = A.builder().a("a").b(A.B.builder().b("b").build()).build();
-        String assign1 = "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}";
-        A assign2 = A.builder().a("a2").b(A.B.builder().b("b2").build()).build();
-        Assertions.assertEquals(JSON.assign(aObj, assign1, assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
+        System.out.println(j);
     }
 
     @Test
@@ -3925,10 +3916,6 @@ class JSONTest {
         assign1 = JSON.parse("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
         assign2 = assign1.mergeIgnoreNull("a", null, "b", A.B.builder().b("b").build());
 
-        var a = A.builder().a("a").b(A.B.builder().b("b").build()).build();
-        var b = A.builder().a(null).b(A.B.builder().b("b").build()).build();
-
-        assign2 = JSON.assign(a, b);
     }
 
     @Test
@@ -3939,14 +3926,11 @@ class JSONTest {
         A aObj = A.builder().a("a").b(A.B.builder().b("b").build()).build();
 
         String assign1 = "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}";
-        Assertions.assertEquals(json.merge(aObj).merge(assign1).toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
-        Assertions.assertEquals(json.toString(), "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
-        Assertions.assertEquals(JSON.parse(aObj).toString(), "{\"a\":\"a\",\"b\":{\"b\":\"b\"}}");
+        Assertions.assertEquals("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}", json.merge(aObj).merge(assign1).toString());
+        Assertions.assertEquals("{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}", json.toString());
+        Assertions.assertEquals("{\"a\":\"a\",\"b\":{\"b\":\"b\"}}", JSON.parse(aObj).toString());
 
-        A assign2 = A.builder().a("a2").b(A.B.builder().b("b2").build()).build();
-        Assertions.assertEquals(JSON.assign(JSON.createObject(), assign1, assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
         Assertions.assertEquals(assign1, "{\"a\":\"a1\",\"b\":{\"b\":\"b1\"}}");
-        Assertions.assertEquals(JSON.parse(assign2).toString(), "{\"a\":\"a2\",\"b\":{\"b\":\"b2\"}}");
     }
 
     @Test
@@ -3968,7 +3952,7 @@ class JSONTest {
             )
         ));
 
-        System.out.println(json.toString());
+        System.out.println(json);
     }
 
     @Test

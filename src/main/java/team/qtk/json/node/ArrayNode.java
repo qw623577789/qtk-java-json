@@ -37,11 +37,7 @@ public class ArrayNode extends Node {
     }
 
     public ArrayNode add(JsonNode jacksonNode) {
-        Node node = Node
-            .builder()
-            .jacksonNode(jacksonNode)
-            .path(this.path + "[" + nodes.size() + "]")
-            .build();
+        Node node = new Node(jacksonNode, this.path + "[" + nodes.size() + "]");
         this.nodes.add(node);
         ((com.fasterxml.jackson.databind.node.ArrayNode) this.jacksonNode).add(jacksonNode);
         return this;

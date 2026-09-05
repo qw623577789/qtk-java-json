@@ -13,6 +13,9 @@ import java.time.format.DateTimeFormatter;
 
 public class JsonDateTimeParser extends JsonDeserializer<LocalDateTime> {
 
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
     @Override
     public LocalDateTime deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         long tryTransformToLong = jsonParser.getValueAsLong(-1);
@@ -20,9 +23,9 @@ public class JsonDateTimeParser extends JsonDeserializer<LocalDateTime> {
         if (tryTransformToLong == -1) {
             String tryTransformToString = jsonParser.getText();
             try {
-                return LocalDateTime.parse(tryTransformToString, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                return LocalDateTime.parse(tryTransformToString, DATE_TIME_FORMATTER);
             } catch (Exception error) {
-                return LocalDate.parse(tryTransformToString, DateTimeFormatter.ofPattern("yyyy-MM-dd")).atStartOfDay();
+                return LocalDate.parse(tryTransformToString, DATE_FORMATTER).atStartOfDay();
             }
         } else {
             long timestamp = jsonParser.getLongValue();

@@ -9,52 +9,51 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import team.qtk.json.node.QOneOf;
-import team.qtk.json.point.Get;
 import team.qtk.json.point.Point;
-import team.qtk.json.point.Point.DefaultValueMap;
 import team.qtk.stream.Stream;
 
 import java.io.File;
 import java.io.Reader;
+import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("unused")
 public class JSON {
 
-    private static ObjectMapper defaultJackson = new ObjectMapper()
+    private static final ObjectMapper defaultJackson = new ObjectMapper()
         .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true)) //修复bigDecimal 1.0 转化后丢失.0问题
         .registerModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()))
         .registerModule(new SimpleModule().addSerializer(JSON.class, new JsonJSONParser())); //修复JSON类型嵌套堆栈溢出问题
+
+    // ObjectReader/ObjectWriter不可变且线程安全，按mapper缓存复用避免每次解析/序列化时重建及根序列化器查找
+    private static final ConcurrentHashMap<ObjectMapper, ObjectReader> READER_CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<ObjectMapper, ObjectWriter> WRITER_CACHE = new ConcurrentHashMap<>();
+
+    // pick/exclude的路径切分正则，避免每次调用重复编译
+    private static final Pattern POINT_PATH_PATTERN = Pattern.compile("\".+?\"|(?<=\\.).+?(?=\\.)|(?<=\\.).+?$|[^\\\\.]+");
+
+    // QOneOf子类无参构造器缓存，避免clone每次反射查找
+    private static final ConcurrentHashMap<Class<?>, Constructor<?>> ONEOF_CONSTRUCTOR_CACHE = new ConcurrentHashMap<>();
 
     public ObjectMapper jackson;
 
     private JsonNode json;
 
-    /**
-     * 自定义配置ObjectMapper
-     */
-    public static JSONConfig config() {
-        JsonMapper.Builder customJacksonBuilder = JsonMapper
-            .builder()
-            .nodeFactory(JsonNodeFactory.withExactBigDecimals(true)) //修复bigDecimal 1.0 转化后丢失.0问题
-            .addModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()))
-            .addModule(new SimpleModule().addSerializer(JSON.class, new JsonJSONParser())); //修复JSON类型嵌套堆栈溢出问题;
-
-        return new JSONConfig(customJacksonBuilder);
-    }
-
+    // <editor-fold desc="默认JSON的静态方法">
     public JSON(JsonNode jacksonNode) {
         this(jacksonNode, defaultJackson);
     }
@@ -80,22 +79,11 @@ public class JSON {
     }
 
     public static JSON createObject() {
-        return new JSON(true, defaultJackson);
+        return createObject(defaultJackson);
     }
 
     public static JSON createArray() {
-        return new JSON(false, defaultJackson);
-    }
-
-    @SneakyThrows
-    public static JSON assign(Object target, Object... sources) {
-        ObjectReader merger = defaultJackson.readerForUpdating(target instanceof JSON ? ((JSON) target).getJacksonNode() : target);
-
-        for (Object object : sources) {
-            merger.readValue(parse(defaultJackson, object).getJacksonNode());
-        }
-
-        return parse(defaultJackson, target);
+        return createArray(defaultJackson);
     }
 
     @SneakyThrows
@@ -103,72 +91,9 @@ public class JSON {
         return parse(defaultJackson, object);
     }
 
-    private JSON(boolean isObject, ObjectMapper jacksonMapper) {
-        this.jackson = jacksonMapper;
-        this.json = isObject ? this.jackson.createObjectNode() : this.jackson.createArrayNode();
-    }
-
     @SneakyThrows
     public static <T> T clone(Object object, Class<T> toClass) {
         return clone(defaultJackson, object, toClass);
-    }
-
-    @SneakyThrows
-    public static <T> T clone(ObjectMapper jacksonMapper, Object object, Class<T> toClass) {
-        if (toClass == String.class) {
-            // convertValue不支持String目标类型，直接序列化为JSON字符串
-            return (T) (object == null ? null : jacksonMapper.writeValueAsString(object));
-        }
-
-        /*
-         * 根节点是QOneOf的话，在此执行解析
-         */
-        if (QOneOf.class.isAssignableFrom(toClass)) {
-            QOneOf oneOf = (QOneOf) toClass.getConstructor().newInstance();
-            if (object == null) {
-                oneOf.value = null;
-                return (T) oneOf;
-            }
-
-            var objectValue = object instanceof QOneOf<?> qOneOf ? qOneOf.getRawValue() : object;
-
-            if (objectValue == null) {
-                oneOf.value = null;
-            } else if (objectValue instanceof String || objectValue instanceof Boolean
-                || objectValue instanceof Long || objectValue instanceof BigDecimal) {
-                // 不可变标量直接赋值，避免convertValue的token往返
-                oneOf.value = objectValue;
-            } else if (objectValue instanceof Integer) {
-                oneOf.value = ((Number) objectValue).longValue();
-            } else if (objectValue instanceof Number) {
-                oneOf.value = jacksonMapper.convertValue(objectValue, BigDecimal.class);
-            } else if (objectValue instanceof List<?>) {
-                oneOf.value = jacksonMapper.convertValue(objectValue, ArrayList.class);
-            } else if (objectValue instanceof Map<?, ?>) {
-                oneOf.value = jacksonMapper.convertValue(objectValue, LinkedHashMap.class);
-            } else {
-                oneOf.value = jacksonMapper.convertValue(objectValue, objectValue.getClass());
-            }
-
-            return (T) oneOf;
-        } else {
-            return object == null ? null : jacksonMapper.convertValue(object, toClass);
-        }
-    }
-
-    @SneakyThrows
-    public static String stringify(ObjectMapper jacksonMapper, Object object) {
-        return stringify(jacksonMapper, object, false, -1);
-    }
-
-    @SneakyThrows
-    public static String stringify(ObjectMapper jacksonMapper, Object object, boolean pretty, int spaceAmount) {
-        if (pretty) {
-            PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
-            return jacksonMapper.writer(printer).writeValueAsString(object);
-        } else {
-            return jacksonMapper.writeValueAsString(object);
-        }
     }
 
     @SneakyThrows
@@ -181,90 +106,161 @@ public class JSON {
         return stringify(defaultJackson, object, false, -1);
     }
 
-    private JSON(JsonNode jacksonNode, ObjectMapper jacksonMapper) {
-        this.json = jacksonNode;
-        this.jackson = jacksonMapper;
+    public static JSON warp(JsonNode object) {
+        return warp(defaultJackson, object);
     }
 
-    private static JSON sPut(ObjectMapper jacksonMapper, String id, Object value) {
-        JSON json = new JSON(true, jacksonMapper);
-        json.put(id, value);
-        return json;
+    public static ObjectWriter writer(ObjectMapper jacksonMapper) {
+        return WRITER_CACHE.computeIfAbsent(jacksonMapper, ObjectMapper::writer);
     }
 
-    private static JSON sAdd(ObjectMapper jacksonMapper, Object... value) {
-        JSON json = new JSON(false, jacksonMapper);
-        json.add(value);
-        return json;
+    public static ObjectReader reader(ObjectMapper jacksonMapper) {
+        return READER_CACHE.computeIfAbsent(jacksonMapper, ObjectMapper::reader);
     }
 
-    private static JSON missingNode(ObjectMapper jacksonMapper) {
-        return new JSON(jacksonMapper.missingNode(), jacksonMapper);
+    // </editor-fold>
+
+    // <editor-fold desc="自定义JSON的方法">
+    public static CustomJSON custom(UnaryOperator<CustomJSON> objectMapperBuilder) {
+        JsonMapper.Builder customJacksonBuilder = JsonMapper
+            .builder()
+            .nodeFactory(JsonNodeFactory.withExactBigDecimals(true)) //修复bigDecimal 1.0 转化后丢失.0问题
+            .addModule(new JavaTimeModule().addDeserializer(LocalDateTime.class, new JsonDateTimeParser()))
+            .addModule(new SimpleModule().addSerializer(JSON.class, new JsonJSONParser())); //修复JSON类型嵌套堆栈溢出问题;
+
+        return objectMapperBuilder.apply(new CustomJSON(customJacksonBuilder)).confirmToCreateMapper();
     }
 
-    private static JSON nullNode(ObjectMapper jacksonMapper) {
-        return new JSON(jacksonMapper.nullNode(), jacksonMapper);
+    public static class CustomJSON {
+
+        private final JsonMapper.Builder customJacksonBuilder;
+
+        private ObjectMapper customJacksonMapper;
+
+        public CustomJSON(JsonMapper.Builder customJacksonBuilder) {
+            this.customJacksonBuilder = customJacksonBuilder;
+        }
+
+        public CustomJSON features(HashMap<Object, Boolean> features) {
+            features
+                .forEach((key, value) -> {
+                    if (key instanceof JsonReadFeature) {
+                        customJacksonBuilder.configure((JsonReadFeature) key, value);
+                    } else if (key instanceof JsonWriteFeature) {
+                        customJacksonBuilder.configure((JsonWriteFeature) key, value);
+                    } else if (key instanceof SerializationFeature) {
+                        customJacksonBuilder.configure((SerializationFeature) key, value);
+                    } else if (key instanceof DeserializationFeature) {
+                        customJacksonBuilder.configure((DeserializationFeature) key, value);
+                    } else {
+                        throw new RuntimeException("no support feature:" + key.getClass().getName());
+                    }
+                });
+            return this;
+        }
+
+        public CustomJSON serializationInclusion(JsonInclude.Include setSerializationInclusion) {
+            customJacksonBuilder.serializationInclusion(setSerializationInclusion);
+            return this;
+        }
+
+        /**
+         * 增加注册模块
+         */
+        public CustomJSON registerModule(com.fasterxml.jackson.databind.Module... module) {
+            customJacksonBuilder.addModules(module);
+            return this;
+        }
+
+        /**
+         * 最终生成ObjectMapper
+         */
+        public CustomJSON confirmToCreateMapper() {
+            this.customJacksonMapper = customJacksonBuilder.build();
+            return this;
+        }
+
+        public JSON JSON(JsonNode jacksonNode) {
+            return new JSON(jacksonNode, customJacksonMapper);
+        }
+
+        public JSON JSON(boolean isObject) {
+            return new JSON(isObject, customJacksonMapper);
+        }
+
+        public JSON missingNode() {
+            return JSON.missingNode(customJacksonMapper);
+        }
+
+        public JSON nullNode() {
+            return JSON.nullNode(customJacksonMapper);
+        }
+
+        public JSON sPut(String id, Object value) {
+            return JSON.sPut(customJacksonMapper, id, value);
+        }
+
+        public JSON sAdd(Object... value) {
+            return JSON.sAdd(customJacksonMapper, value);
+        }
+
+        public JSON createObject() {
+            return JSON.createObject(customJacksonMapper);
+        }
+
+        public JSON createArray() {
+            return JSON.createArray(customJacksonMapper);
+        }
+
+        public JSON parse(Object object) {
+            return JSON.parse(customJacksonMapper, object);
+        }
+
+        @SneakyThrows
+        public <T> T clone(Object object, Class<T> toClass) {
+            return JSON.clone(customJacksonMapper, object, toClass);
+        }
+
+        @SneakyThrows
+        public String stringify(Object object, boolean pretty, int spaceAmount) {
+            return JSON.stringify(customJacksonMapper, object, pretty, spaceAmount);
+        }
+
+        @SneakyThrows
+        public String stringify(Object object) {
+            return JSON.stringify(customJacksonMapper, object, false, -1);
+        }
+
+        public JSON warp(JsonNode object) {
+            return JSON.warp(customJacksonMapper, object);
+        }
     }
+
+    // </editor-fold>
+
+    // <editor-fold desc="JsonNode的操作方法">
 
     @SneakyThrows
-    private static JSON parse(ObjectMapper jacksonMapper, Object object) {
+    public JsonNode toJsonNode(Object object) {
         if (object instanceof String string) {
             return (
                 (string.startsWith("{") && string.endsWith("}")) ||
                     (string.startsWith("[") && string.endsWith("]"))
             )
-                ? new JSON(jacksonMapper.readTree(string), jacksonMapper)
-                : new JSON(jacksonMapper.valueToTree(object), jacksonMapper);
-        } else if (object instanceof File) {
-            return new JSON(jacksonMapper.readTree((File) object), jacksonMapper);
-        } else if (object instanceof JSON) {
-            return new JSON(((JSON) object).getJacksonNode(), jacksonMapper);
-        } else if (object instanceof Reader) {
-            return new JSON(jacksonMapper.readTree((Reader) object), jacksonMapper);
+                ? reader(jackson).readTree(string)
+                : jackson.valueToTree(object);
+        } else if (object instanceof File file) {
+            return jackson.readTree(file);
+        } else if (object instanceof JSON json) {
+            return json.getJacksonNode().deepCopy();
+        } else if (object instanceof Reader reader) {
+            return reader(jackson).readTree(reader);
         } else if (object instanceof JsonNode jsonNode) {
             // valueToTree对JsonNode会直接返回原实例，deepCopy避免后续修改污染外部持有的节点
-            return new JSON(jsonNode.deepCopy(), jacksonMapper);
+            return jsonNode.deepCopy();
         } else {
-            return new JSON(jacksonMapper.valueToTree(object), jacksonMapper);
+            return jackson.valueToTree(object);
         }
-    }
-
-    public Point point(String point) {
-        return new Point(point, "", new HashMap<>(), this.json, this);
-    }
-
-    public Point point(String point, Supplier<Object> defaultValue) {
-        return new Point(point, "", new HashMap<>(), this.json, this)
-            .defaultValue(defaultValue);
-    }
-
-    public Point point(String point, Object defaultValue) {
-        if (defaultValue instanceof DefaultValueMap) {
-            return new Point(point, "", new HashMap<>(), this.json, this)
-                .defaultValue((DefaultValueMap) defaultValue);
-        } else {
-            return new Point(point, "", new HashMap<>(), this.json, this)
-                .defaultValue(defaultValue);
-        }
-    }
-
-    public Point point(String point, Supplier<Object> defaultValue, boolean toUpdateNode) {
-        return new Point(point, "", new HashMap<>(), this.json, this)
-            .defaultValue(defaultValue, toUpdateNode);
-    }
-
-    public Point point(String point, Object defaultValue, boolean toUpdateNode) {
-        if (defaultValue instanceof DefaultValueMap) {
-            return new Point(point, "", new HashMap<>(), this.json, this)
-                .defaultValue((DefaultValueMap) defaultValue, toUpdateNode);
-        } else {
-            return new Point(point, "", new HashMap<>(), this.json, this)
-                .defaultValue(defaultValue, toUpdateNode);
-        }
-    }
-
-    public Point point() {
-        return point(".");
     }
 
     /**
@@ -272,7 +268,6 @@ public class JSON {
      * 若想浅拷贝提高性能，使用point().retain()
      *
      * @param paths 支持xx、xx.xx
-     * @return
      */
     public JSON pick(String... paths) {
         var cloneJson = this.deepCopy();
@@ -282,17 +277,16 @@ public class JSON {
 
         // 根据路径归类fieldNames，统一批处理
         Arrays.stream(paths).reduce(
-                new TreeMap<Field, List<String>>((Comparator.comparingInt(o -> Math.toIntExact(o.level)))),
+                new TreeMap<Field, List<String>>(Comparator.comparingLong(Field::level)),
                 (prev, curr) -> {
 
                     // 每级节点必须包含子节点，否则将会被过滤
                     // ."xxx.a.a.a"."aaa".aaaa.aa."aaa".aa 匹配 "xxx.a.a.a"、"aaa"、aaaa、aa、"aaa"、aa
                     Stream.from(
-                        Pattern
-                            .compile("\".+?\"|(?<=\\.).+?(?=\\.)|(?<=\\.).+?$|[^\\\\.]+") //匹配　."匹配内容"、?."匹配内容"、?.匹配内容.、?.匹配内容
+                        POINT_PATH_PATTERN
                             .matcher(curr)
                             .results()
-                            .map(v -> v.group().replaceAll("\"", ""))
+                            .map(v -> v.group().replace("\"", ""))
                     ).forEach(
                         node -> {
                             var point = node.index == 0 ? "." : String.join(".", node.list.subList(0, (int) node.index));
@@ -309,11 +303,10 @@ public class JSON {
             )
             .forEach((pointInfo, pointFieldNames) -> {
                 var point = pointInfo.fieldName();
-                Get pointValue;
                 if (point.equals(".")) {
-                    cloneJson.point(cloneJson.getJacksonNode().isArray() ? ".[*]" : ".").retain(pointFieldNames.toArray(new String[]{}));
+                    cloneJson.point(cloneJson.getJacksonNode().isArray() ? ".[*]" : ".").retain(pointFieldNames.toArray(String[]::new));
                 } else {
-                    cloneJson.point((cloneJson.getJacksonNode().isArray() ? ".[*]." : ".") + point).retain(pointFieldNames.toArray(new String[]{}));
+                    cloneJson.point((cloneJson.getJacksonNode().isArray() ? ".[*]." : ".") + point).retain(pointFieldNames.toArray(String[]::new));
                 }
             });
 
@@ -323,9 +316,6 @@ public class JSON {
     public JSON exclude(String... paths) {
         var cloneJson = this.deepCopy();
 
-        record Field(long level, String fieldName) {
-        }
-
         // 根据路径归类fieldNames，统一批处理
         Arrays.stream(paths).reduce(
                 new HashMap<String, List<String>>(),
@@ -333,11 +323,10 @@ public class JSON {
 
                     // 每级节点必须包含子节点，否则将会被过滤
                     // ."xxx.a.a.a"."aaa".aaaa.aa."aaa".aa 匹配 "xxx.a.a.a"、"aaa"、aaaa、aa、"aaa"、aa
-                    var cutInfo = Pattern
-                        .compile("\".+?\"|(?<=\\.).+?(?=\\.)|(?<=\\.).+?$|[^\\\\.]+") //匹配　."匹配内容"、?."匹配内容"、?.匹配内容.、?.匹配内容
+                    var cutInfo = POINT_PATH_PATTERN
                         .matcher(curr)
                         .results()
-                        .map(v -> v.group().replaceAll("\"", ""))
+                        .map(v -> v.group().replace("\"", ""))
                         .toList();
 
                     var point = cutInfo.size() == 1 ? "." : String.join(".", cutInfo.subList(0, cutInfo.size() - 1));
@@ -352,11 +341,10 @@ public class JSON {
                 (l, r) -> l
             )
             .forEach((point, pointFieldNames) -> {
-                Get pointValue;
                 if (point.equals(".")) {
-                    cloneJson.point(cloneJson.getJacksonNode().isArray() ? ".[*]" : ".").exclude(pointFieldNames.toArray(new String[]{}));
+                    cloneJson.point(cloneJson.getJacksonNode().isArray() ? ".[*]" : ".").exclude(pointFieldNames.toArray(String[]::new));
                 } else {
-                    cloneJson.point((cloneJson.getJacksonNode().isArray() ? ".[*]." : ".") + point).exclude(pointFieldNames.toArray(new String[]{}));
+                    cloneJson.point((cloneJson.getJacksonNode().isArray() ? ".[*]." : ".") + point).exclude(pointFieldNames.toArray(String[]::new));
                 }
             });
 
@@ -365,29 +353,7 @@ public class JSON {
 
     public JSON put(String id, Object value) {
         ObjectNode objectNode = (ObjectNode) (this.json);
-        if (value == null) {
-            objectNode.set(id, null);
-        } else if (value instanceof JSON) {
-            objectNode.set(id, ((JSON) value).getJacksonNode());
-        } else if (value instanceof List) {
-            objectNode.set(
-                id,
-                jackson.valueToTree(
-                    ((List<?>) value).stream().map(item -> {
-                        if (item == null) {
-                            return null;
-                        } else if (item instanceof JSON) {
-                            return ((JSON) item).getJacksonNode();
-                        } else {
-                            return jackson.valueToTree(item);
-                        }
-                    }).collect(Collectors.toList())
-                )
-            );
-        } else {
-            objectNode.set(id, jackson.valueToTree(value));
-        }
-
+        objectNode.set(id, toJsonNode(value));
         return this;
     }
 
@@ -395,35 +361,9 @@ public class JSON {
         ArrayNode arrayNode = (ArrayNode) this.json;
 
         if (value == null) {
-            arrayNode.add(jackson.valueToTree(null));
+            arrayNode.add(NullNode.getInstance());
         } else {
-            Arrays
-                .asList(value)
-                .forEach(
-                    item -> {
-                        if (item == null) {
-                            arrayNode.add(jackson.valueToTree(null));
-                        } else if (item instanceof JSON) {
-                            arrayNode.add(((JSON) item).getJacksonNode());
-                        } else if (item instanceof List) {
-                            arrayNode.add(
-                                jackson.valueToTree(
-                                    ((List<?>) item).stream().map(i -> {
-                                        if (i == null) {
-                                            return null;
-                                        } else if (i instanceof JSON) {
-                                            return ((JSON) i).getJacksonNode();
-                                        } else {
-                                            return jackson.valueToTree(i);
-                                        }
-                                    }).collect(Collectors.toList())
-                                )
-                            );
-                        } else {
-                            arrayNode.add(jackson.valueToTree(item));
-                        }
-                    }
-                );
+            for (Object item : value) arrayNode.add(toJsonNode(item));
         }
 
         return this;
@@ -445,7 +385,7 @@ public class JSON {
 
     public List<JSON> values() {
         if (!this.json.isObject()) throw new RuntimeException("非对象无法使用keys");
-        return this.json.properties().stream().map(entry -> new JSON(entry.getValue())).collect(Collectors.toList());
+        return this.json.properties().stream().map(entry -> new JSON(entry.getValue(), this.jackson)).collect(Collectors.toList());
     }
 
     public List<Map.Entry<String, JsonNode>> entries() {
@@ -465,7 +405,7 @@ public class JSON {
 
     public JSON merge(Object value) {
         if (value == null) return this;
-        JsonNode source = parse(jackson, value).getJacksonNode();
+        JsonNode source = toJsonNode(value);
         if (!source.isObject()) throw new RuntimeException("非对象无法merge");
         ObjectNode target = (ObjectNode) this.json;
         source.properties().forEach(entry -> target.set(entry.getKey(), entry.getValue()));
@@ -474,7 +414,7 @@ public class JSON {
 
     public JSON mergeIgnoreNull(Object value) {
         if (value == null) return this;
-        JsonNode source = parse(jackson, value).getJacksonNode();
+        JsonNode source = toJsonNode(value);
         if (!source.isObject()) throw new RuntimeException("非对象无法merge");
         ObjectNode target = (ObjectNode) this.json;
         source.properties().forEach(entry -> {
@@ -507,15 +447,17 @@ public class JSON {
     @SneakyThrows
     public JSON mergeDeep(Object value) {
         if (value == null) return this;
-        ObjectReader merger = jackson.readerForUpdating(this.json);
-        merger.readValue(parse(jackson, value).getJacksonNode());
+        ObjectReader merger = reader(jackson)
+            .withValueToUpdate(this.json);
+        merger.readValue(toJsonNode(value));
         return this;
     }
 
     @SneakyThrows
     public JSON mergeDeepIgnoreNull(Object value) {
         if (value == null) return this;
-        ObjectReader merger = jackson.readerForUpdating(this.json);
+        ObjectReader merger = reader(jackson)
+            .withValueToUpdate(this.json);
         merger.readValue(parse(jackson, value).rmNull().getJacksonNode());
         return this;
     }
@@ -532,7 +474,7 @@ public class JSON {
     }
 
     public JSON deepCopy() {
-        return new JSON(this.json.deepCopy());
+        return new JSON(this.json.deepCopy(), this.jackson);
     }
 
     public JsonNode getJacksonNode() {
@@ -546,7 +488,6 @@ public class JSON {
     /**
      * 效率更好的话，建议stringify
      *
-     * @return
      */
     public String toString() {
         return this.toString(false);
@@ -556,10 +497,52 @@ public class JSON {
     public String toString(boolean pretty, int spaceAmount) {
         if (pretty) {
             PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
-            return jackson.writer(printer).writeValueAsString(this.json);
+            return writer(jackson).with(printer).writeValueAsString(this.json);
         } else {
             return this.json.toString();
         }
+    }
+
+    // </editor-fold>
+
+    // <editor-fold desc="根节点Point操作方法"
+
+    public Point point(String point) {
+        return new Point(point, "", null, this.json, this);
+    }
+
+    public Point point(String point, Supplier<Object> defaultValue) {
+        return new Point(point, "", null, this.json, this)
+            .defaultValue(defaultValue);
+    }
+
+    public Point point(String point, Object defaultValue) {
+        if (defaultValue instanceof Point.DefaultValueMap) {
+            return new Point(point, "", null, this.json, this)
+                .defaultValue((Point.DefaultValueMap) defaultValue);
+        } else {
+            return new Point(point, "", null, this.json, this)
+                .defaultValue(defaultValue);
+        }
+    }
+
+    public Point point(String point, Supplier<Object> defaultValue, boolean toUpdateNode) {
+        return new Point(point, "", null, this.json, this)
+            .defaultValue(defaultValue, toUpdateNode);
+    }
+
+    public Point point(String point, Object defaultValue, boolean toUpdateNode) {
+        if (defaultValue instanceof Point.DefaultValueMap) {
+            return new Point(point, "", null, this.json, this)
+                .defaultValue((Point.DefaultValueMap) defaultValue, toUpdateNode);
+        } else {
+            return new Point(point, "", null, this.json, this)
+                .defaultValue(defaultValue, toUpdateNode);
+        }
+    }
+
+    public Point point() {
+        return point(".");
     }
 
     @AllArgsConstructor
@@ -603,11 +586,11 @@ public class JSON {
         return this.getAs(".", type, defaultValue);
     }
 
-    public <T> T getAs(String point, Class<T> type, DefaultValueMap defaultValueMap) {
+    public <T> T getAs(String point, Class<T> type, Point.DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get().as(type);
     }
 
-    public <T> T getAs(Class<T> type, DefaultValueMap defaultValueMap) {
+    public <T> T getAs(Class<T> type, Point.DefaultValueMap defaultValueMap) {
         return this.getAs(".", type, defaultValueMap);
     }
 
@@ -632,7 +615,7 @@ public class JSON {
     }
 
     public <T> T getNullableAs(Class<T> type, Object defaultValue) {
-        return this.getNullableAs("point", type, defaultValue);
+        return this.getNullableAs(".", type, defaultValue);
     }
 
     public <T> T getNullableAs(String point, Class<T> type, Supplier<Void> defaultValueSupplier) {
@@ -643,11 +626,11 @@ public class JSON {
         return this.getNullableAs(".", type, defaultValueSupplier);
     }
 
-    public <T> T getNullableAs(String point, Class<T> type, DefaultValueMap defaultValueMap) {
+    public <T> T getNullableAs(String point, Class<T> type, Point.DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get(true).as(type);
     }
 
-    public <T> T getNullableAs(Class<T> type, DefaultValueMap defaultValueMap) {
+    public <T> T getNullableAs(Class<T> type, Point.DefaultValueMap defaultValueMap) {
         return this.getNullableAs(".", type, defaultValueMap);
     }
 
@@ -675,11 +658,11 @@ public class JSON {
         return getNull(".", defaultValueSupplier);
     }
 
-    public Void getNull(String point, DefaultValueMap defaultValueMap) {
+    public Void getNull(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, Void.class, defaultValueMap);
     }
 
-    public Void getNull(DefaultValueMap defaultValueMap) {
+    public Void getNull(Point.DefaultValueMap defaultValueMap) {
         return getNull(".", defaultValueMap);
     }
 
@@ -707,11 +690,11 @@ public class JSON {
         return getNullableNull(".", defaultValueSupplier);
     }
 
-    public Void getNullableNull(String point, DefaultValueMap defaultValueMap) {
+    public Void getNullableNull(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Void.class, defaultValueMap);
     }
 
-    public Void getNullableNull(DefaultValueMap defaultValueMap) {
+    public Void getNullableNull(Point.DefaultValueMap defaultValueMap) {
         return getNullableNull(".", defaultValueMap);
     }
 
@@ -727,7 +710,7 @@ public class JSON {
         return getAs(point, String.class, defaultValueSupplier);
     }
 
-    public String getString(String point, DefaultValueMap defaultValueMap) {
+    public String getString(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, String.class, defaultValueMap);
     }
 
@@ -743,7 +726,7 @@ public class JSON {
         return getNullableAs(point, String.class, defaultValueSupplier);
     }
 
-    public String getNullableString(String point, DefaultValueMap defaultValueMap) {
+    public String getNullableString(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, String.class, defaultValueMap);
     }
 
@@ -771,11 +754,11 @@ public class JSON {
         return getBoolean(".", defaultValueSupplier);
     }
 
-    public Boolean getBoolean(String point, DefaultValueMap defaultValueMap) {
+    public Boolean getBoolean(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, Boolean.class, defaultValueMap);
     }
 
-    public Boolean getBoolean(DefaultValueMap defaultValueMap) {
+    public Boolean getBoolean(Point.DefaultValueMap defaultValueMap) {
         return getBoolean(".", defaultValueMap);
     }
 
@@ -803,11 +786,11 @@ public class JSON {
         return getNullableBoolean(".", defaultValueSupplier);
     }
 
-    public Boolean getNullableBoolean(String point, DefaultValueMap defaultValueMap) {
+    public Boolean getNullableBoolean(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Boolean.class, defaultValueMap);
     }
 
-    public Boolean getNullableBoolean(DefaultValueMap defaultValueMap) {
+    public Boolean getNullableBoolean(Point.DefaultValueMap defaultValueMap) {
         return getNullableBoolean(".", defaultValueMap);
     }
 
@@ -835,11 +818,11 @@ public class JSON {
         return getLocalDateTime(".", defaultValueSupplier);
     }
 
-    public LocalDateTime getLocalDateTime(String point, DefaultValueMap defaultValueMap) {
+    public LocalDateTime getLocalDateTime(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, LocalDateTime.class, defaultValueMap);
     }
 
-    public LocalDateTime getLocalDateTime(DefaultValueMap defaultValueMap) {
+    public LocalDateTime getLocalDateTime(Point.DefaultValueMap defaultValueMap) {
         return getLocalDateTime(".", defaultValueMap);
     }
 
@@ -867,11 +850,11 @@ public class JSON {
         return getNullableLocalDateTime(".", defaultValueSupplier);
     }
 
-    public LocalDateTime getNullableLocalDateTime(String point, DefaultValueMap defaultValueMap) {
+    public LocalDateTime getNullableLocalDateTime(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, LocalDateTime.class, defaultValueMap);
     }
 
-    public LocalDateTime getNullableLocalDateTime(DefaultValueMap defaultValueMap) {
+    public LocalDateTime getNullableLocalDateTime(Point.DefaultValueMap defaultValueMap) {
         return getNullableLocalDateTime(".", defaultValueMap);
     }
 
@@ -899,11 +882,11 @@ public class JSON {
         return getInt(".", defaultValueSupplier);
     }
 
-    public Integer getInt(String point, DefaultValueMap defaultValueMap) {
+    public Integer getInt(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, Integer.class, defaultValueMap);
     }
 
-    public Integer getInt(DefaultValueMap defaultValueMap) {
+    public Integer getInt(Point.DefaultValueMap defaultValueMap) {
         return getInt(".", defaultValueMap);
     }
 
@@ -932,11 +915,11 @@ public class JSON {
         return getNullableInt(".", defaultValueSupplier);
     }
 
-    public Integer getNullableInt(String point, DefaultValueMap defaultValueMap) {
+    public Integer getNullableInt(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Integer.class, defaultValueMap);
     }
 
-    public Integer getNullableInt(DefaultValueMap defaultValueMap) {
+    public Integer getNullableInt(Point.DefaultValueMap defaultValueMap) {
         return getNullableInt(".", defaultValueMap);
     }
 
@@ -964,11 +947,11 @@ public class JSON {
         return getDouble(".", defaultValueSupplier);
     }
 
-    public Double getDouble(String point, DefaultValueMap defaultValueMap) {
+    public Double getDouble(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, Double.class, defaultValueMap);
     }
 
-    public Double getDouble(DefaultValueMap defaultValueMap) {
+    public Double getDouble(Point.DefaultValueMap defaultValueMap) {
         return getDouble(".", defaultValueMap);
     }
 
@@ -996,11 +979,11 @@ public class JSON {
         return getNullableDouble(".", defaultValueSupplier);
     }
 
-    public Double getNullableDouble(String point, DefaultValueMap defaultValueMap) {
+    public Double getNullableDouble(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Double.class, defaultValueMap);
     }
 
-    public Double getNullableDouble(DefaultValueMap defaultValueMap) {
+    public Double getNullableDouble(Point.DefaultValueMap defaultValueMap) {
         return getNullableDouble(".", defaultValueMap);
     }
 
@@ -1028,11 +1011,11 @@ public class JSON {
         return getLong(".", defaultValueSupplier);
     }
 
-    public Long getLong(String point, DefaultValueMap defaultValueMap) {
+    public Long getLong(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, Long.class, defaultValueMap);
     }
 
-    public Long getLong(DefaultValueMap defaultValueMap) {
+    public Long getLong(Point.DefaultValueMap defaultValueMap) {
         return getLong(".", defaultValueMap);
     }
 
@@ -1060,11 +1043,11 @@ public class JSON {
         return getNullableLong(".", defaultValueSupplier);
     }
 
-    public Long getNullableLong(String point, DefaultValueMap defaultValueMap) {
+    public Long getNullableLong(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Long.class, defaultValueMap);
     }
 
-    public Long getNullableLong(DefaultValueMap defaultValueMap) {
+    public Long getNullableLong(Point.DefaultValueMap defaultValueMap) {
         return getNullableLong(".", defaultValueMap);
     }
 
@@ -1092,11 +1075,11 @@ public class JSON {
         return getFloat(".", defaultValueSupplier);
     }
 
-    public Float getFloat(String point, DefaultValueMap defaultValueMap) {
+    public Float getFloat(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, Float.class, defaultValueMap);
     }
 
-    public Float getFloat(DefaultValueMap defaultValueMap) {
+    public Float getFloat(Point.DefaultValueMap defaultValueMap) {
         return getFloat(".", defaultValueMap);
     }
 
@@ -1124,11 +1107,11 @@ public class JSON {
         return getNullableFloat(".", defaultValueSupplier);
     }
 
-    public Float getNullableFloat(String point, DefaultValueMap defaultValueMap) {
+    public Float getNullableFloat(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Float.class, defaultValueMap);
     }
 
-    public Float getNullableFloat(DefaultValueMap defaultValueMap) {
+    public Float getNullableFloat(Point.DefaultValueMap defaultValueMap) {
         return getNullableFloat(".", defaultValueMap);
     }
 
@@ -1156,11 +1139,11 @@ public class JSON {
         return getBigDecimal(".", defaultValueSupplier);
     }
 
-    public BigDecimal getBigDecimal(String point, DefaultValueMap defaultValueMap) {
+    public BigDecimal getBigDecimal(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, BigDecimal.class, defaultValueMap);
     }
 
-    public BigDecimal getBigDecimal(DefaultValueMap defaultValueMap) {
+    public BigDecimal getBigDecimal(Point.DefaultValueMap defaultValueMap) {
         return getBigDecimal(".", defaultValueMap);
 
     }
@@ -1189,11 +1172,11 @@ public class JSON {
         return getNullableBigDecimal(".", defaultValueSupplier);
     }
 
-    public BigDecimal getNullableBigDecimal(String point, DefaultValueMap defaultValueMap) {
+    public BigDecimal getNullableBigDecimal(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, BigDecimal.class, defaultValueMap);
     }
 
-    public BigDecimal getNullableBigDecimal(DefaultValueMap defaultValueMap) {
+    public BigDecimal getNullableBigDecimal(Point.DefaultValueMap defaultValueMap) {
         return getNullableBigDecimal(".", defaultValueMap);
     }
 
@@ -1221,11 +1204,11 @@ public class JSON {
         return getJSON(".", defaultValueSupplier);
     }
 
-    public JSON getJSON(String point, DefaultValueMap defaultValueMap) {
+    public JSON getJSON(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, JSON.class, defaultValueMap);
     }
 
-    public JSON getJSON(DefaultValueMap defaultValueMap) {
+    public JSON getJSON(Point.DefaultValueMap defaultValueMap) {
         return getJSON(".", defaultValueMap);
     }
 
@@ -1253,11 +1236,11 @@ public class JSON {
         return getNullableJSON(".", defaultValueSupplier);
     }
 
-    public JSON getNullableJSON(String point, DefaultValueMap defaultValueMap) {
+    public JSON getNullableJSON(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, JSON.class, defaultValueMap);
     }
 
-    public JSON getNullableJSON(DefaultValueMap defaultValueMap) {
+    public JSON getNullableJSON(Point.DefaultValueMap defaultValueMap) {
         return getNullableJSON(".", defaultValueMap);
     }
 
@@ -1285,11 +1268,11 @@ public class JSON {
         return this.getList(".", itemType, defaultValueSupplier);
     }
 
-    public <T> List<T> getList(String point, Class<T> itemType, DefaultValueMap defaultValueMap) {
+    public <T> List<T> getList(String point, Class<T> itemType, Point.DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get().asList(itemType);
     }
 
-    public <T> List<T> getList(Class<T> itemType, DefaultValueMap defaultValueMap) {
+    public <T> List<T> getList(Class<T> itemType, Point.DefaultValueMap defaultValueMap) {
         return this.getList(".", itemType, defaultValueMap);
     }
 
@@ -1324,11 +1307,11 @@ public class JSON {
         return this.getNullableList(".", itemType, defaultValueSupplier);
     }
 
-    public <T> List<T> getNullableList(String point, Class<T> itemType, DefaultValueMap defaultValueMap) {
+    public <T> List<T> getNullableList(String point, Class<T> itemType, Point.DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get(true).asList(itemType);
     }
 
-    public <T> List<T> getNullableList(Class<T> itemType, DefaultValueMap defaultValueMap) {
+    public <T> List<T> getNullableList(Class<T> itemType, Point.DefaultValueMap defaultValueMap) {
         return this.getNullableList(".", itemType, defaultValueMap);
     }
 
@@ -1356,11 +1339,11 @@ public class JSON {
         return getList(".", defaultValueSupplier);
     }
 
-    public List<Object> getList(String point, DefaultValueMap defaultValueMap) {
+    public List<Object> getList(String point, Point.DefaultValueMap defaultValueMap) {
         return getList(point, Object.class, defaultValueMap);
     }
 
-    public List<Object> getList(DefaultValueMap defaultValueMap) {
+    public List<Object> getList(Point.DefaultValueMap defaultValueMap) {
         return getList(".", defaultValueMap);
 
     }
@@ -1389,11 +1372,11 @@ public class JSON {
         return getNullableList(".", defaultValueSupplier);
     }
 
-    public List<Object> getNullableList(String point, DefaultValueMap defaultValueMap) {
+    public List<Object> getNullableList(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableList(point, Object.class, defaultValueMap);
     }
 
-    public List<Object> getNullableList(DefaultValueMap defaultValueMap) {
+    public List<Object> getNullableList(Point.DefaultValueMap defaultValueMap) {
         return getNullableList(".", defaultValueMap);
     }
 
@@ -1421,11 +1404,11 @@ public class JSON {
         return this.getMap(".", defaultValueSupplier);
     }
 
-    public HashMap<String, Object> getMap(String point, DefaultValueMap defaultValueMap) {
+    public HashMap<String, Object> getMap(String point, Point.DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get().asMap(Object.class);
     }
 
-    public HashMap<String, Object> getMap(DefaultValueMap defaultValueMap) {
+    public HashMap<String, Object> getMap(Point.DefaultValueMap defaultValueMap) {
         return this.getMap(".", defaultValueMap);
     }
 
@@ -1453,11 +1436,11 @@ public class JSON {
         return this.getNullableMap(".", defaultValueSupplier);
     }
 
-    public HashMap<String, Object> getNullableMap(String point, DefaultValueMap defaultValueMap) {
+    public HashMap<String, Object> getNullableMap(String point, Point.DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get(true).asMap(Object.class);
     }
 
-    public HashMap<String, Object> getNullableMap(DefaultValueMap defaultValueMap) {
+    public HashMap<String, Object> getNullableMap(Point.DefaultValueMap defaultValueMap) {
         return this.getNullableMap(".", defaultValueMap);
     }
 
@@ -1492,11 +1475,11 @@ public class JSON {
         return this.getMap(".", valueType, defaultValueSupplier);
     }
 
-    public <T> HashMap<String, T> getMap(String point, Class<T> valueType, DefaultValueMap defaultValueMap) {
+    public <T> HashMap<String, T> getMap(String point, Class<T> valueType, Point.DefaultValueMap defaultValueMap) {
         return this.point(point, defaultValueMap).get().asMap(valueType);
     }
 
-    public <T> HashMap<String, T> getMap(Class<T> valueType, DefaultValueMap defaultValueMap) {
+    public <T> HashMap<String, T> getMap(Class<T> valueType, Point.DefaultValueMap defaultValueMap) {
         return this.getMap(".", valueType, defaultValueMap);
     }
 
@@ -1534,14 +1517,14 @@ public class JSON {
     public <T> HashMap<String, T> getNullableMap(
         String point,
         Class<T> valueType,
-        DefaultValueMap defaultValueMap
+        Point.DefaultValueMap defaultValueMap
     ) {
         return this.point(point, defaultValueMap).get(true).asMap(valueType);
     }
 
     public <T> HashMap<String, T> getNullableMap(
         Class<T> valueType,
-        DefaultValueMap defaultValueMap
+        Point.DefaultValueMap defaultValueMap
     ) {
         return this.getNullableMap(".", valueType, defaultValueMap);
     }
@@ -1570,11 +1553,11 @@ public class JSON {
         return getObject(".", defaultValueSupplier);
     }
 
-    public Object getObject(String point, DefaultValueMap defaultValueMap) {
+    public Object getObject(String point, Point.DefaultValueMap defaultValueMap) {
         return getAs(point, Object.class, defaultValueMap);
     }
 
-    public Object getObject(DefaultValueMap defaultValueMap) {
+    public Object getObject(Point.DefaultValueMap defaultValueMap) {
         return getObject(".", defaultValueMap);
     }
 
@@ -1602,109 +1585,140 @@ public class JSON {
         return getNullableObject(".", defaultValueSupplier);
     }
 
-    public Object getNullableObject(String point, DefaultValueMap defaultValueMap) {
+    public Object getNullableObject(String point, Point.DefaultValueMap defaultValueMap) {
         return getNullableAs(point, Object.class, defaultValueMap);
     }
 
-    public Object getNullableObject(DefaultValueMap defaultValueMap) {
+    public Object getNullableObject(Point.DefaultValueMap defaultValueMap) {
         return getNullableObject(".", defaultValueMap);
     }
+    // </editor-fold>
 
-    public static class JSONConfig {
+    // <editor-fold desc="下面方法将是最底层的实现，需传入jacksonMapper，此处添加方法需要在下面CustomJSON也添加对应的">
 
-        private final JsonMapper.Builder customJacksonBuilder;
+    private JSON(ObjectMapper jacksonMapper) {
+        this.jackson = jacksonMapper;
+    }
 
-        private ObjectMapper customJacksonMapper;
+    private JSON(boolean isObject, ObjectMapper jacksonMapper) {
+        this.jackson = jacksonMapper;
+        this.json = isObject ? this.jackson.createObjectNode() : this.jackson.createArrayNode();
+    }
 
-        public JSONConfig(JsonMapper.Builder customJacksonBuilder) {
-            this.customJacksonBuilder = customJacksonBuilder;
+    public JSON(JsonNode jacksonNode, ObjectMapper jacksonMapper) {
+        this.json = jacksonNode;
+        this.jackson = jacksonMapper;
+    }
+
+    private static JSON missingNode(ObjectMapper jacksonMapper) {
+        return new JSON(jacksonMapper.missingNode(), jacksonMapper);
+    }
+
+    private static JSON nullNode(ObjectMapper jacksonMapper) {
+        return new JSON(jacksonMapper.nullNode(), jacksonMapper);
+    }
+
+    private static JSON sPut(ObjectMapper jacksonMapper, String id, Object value) {
+        JSON json = new JSON(true, jacksonMapper);
+        json.put(id, value);
+        return json;
+    }
+
+    private static JSON sAdd(ObjectMapper jacksonMapper, Object... value) {
+        JSON json = new JSON(false, jacksonMapper);
+        json.add(value);
+        return json;
+    }
+
+    private static JSON createObject(ObjectMapper jacksonMapper) {
+        return new JSON(true, jacksonMapper);
+    }
+
+    private static JSON createArray(ObjectMapper jacksonMapper) {
+        return new JSON(false, jacksonMapper);
+    }
+
+    @SneakyThrows
+    private static JSON parse(ObjectMapper jacksonMapper, Object object) {
+        var json = new JSON(jacksonMapper);
+        json.json = json.toJsonNode(object);
+        return json;
+    }
+
+    @SneakyThrows
+    private static <T> T clone(ObjectMapper jacksonMapper, Object object, Class<T> toClass) {
+        if (toClass == String.class) {
+            // convertValue不支持String目标类型，直接序列化为JSON字符串
+            return (T) (object == null ? null
+                : writer(jacksonMapper).writeValueAsString(object));
         }
 
-        public JSONConfig features(HashMap<Object, Boolean> features) {
-            features
-                .forEach((key, value) -> {
-                    if (key instanceof JsonReadFeature) {
-                        customJacksonBuilder.configure((JsonReadFeature) key, value);
-                    } else if (key instanceof JsonWriteFeature) {
-                        customJacksonBuilder.configure((JsonWriteFeature) key, value);
-                    } else if (key instanceof SerializationFeature) {
-                        customJacksonBuilder.configure((SerializationFeature) key, value);
-                    } else if (key instanceof DeserializationFeature) {
-                        customJacksonBuilder.configure((DeserializationFeature) key, value);
-                    } else {
-                        throw new RuntimeException("no support feature:" + key.getClass().getName());
-                    }
-                });
-            return this;
-        }
-
-        public JSONConfig serializationInclusion(JsonInclude.Include setSerializationInclusion) {
-            customJacksonBuilder.serializationInclusion(setSerializationInclusion);
-            return this;
-        }
-
-        /**
-         * 增加注册模块
+        /*
+         * 根节点是QOneOf的话，在此执行解析
          */
-        public JSONConfig registerModule(com.fasterxml.jackson.databind.Module... module) {
-            customJacksonBuilder.addModules(module);
-            return this;
-        }
-
-        /**
-         * 最终生成ObjectMapper
-         */
-        public JSONConfig confirmToCreateMapper() {
-            customJacksonMapper = customJacksonBuilder.build();
-            return this;
-        }
-
-        public JSON JSON(JsonNode jacksonNode) {
-            return new JSON(jacksonNode, customJacksonMapper);
-        }
-
-        public JSON JSON(boolean isObject) {
-            return new JSON(isObject, customJacksonMapper);
-        }
-
-        public JSON missingNode() {
-            return JSON.missingNode(customJacksonMapper);
-        }
-
-        public JSON nullNode() {
-            return JSON.nullNode(customJacksonMapper);
-        }
-
-        public JSON sPut(String id, Object value) {
-            return JSON.sPut(customJacksonMapper, id, value);
-        }
-
-        public JSON sAdd(Object... value) {
-            return JSON.sAdd(customJacksonMapper, value);
-        }
-
-        public JSON createObject() {
-            return new JSON(true, customJacksonMapper);
-        }
-
-        public JSON createArray() {
-            return new JSON(false, customJacksonMapper);
-        }
-
-        @SneakyThrows
-        public JSON assign(Object target, Object... sources) {
-            ObjectReader merger = customJacksonMapper.readerForUpdating(target instanceof JSON ? ((JSON) target).getJacksonNode() : target);
-
-            for (Object object : sources) {
-                merger.readValue(JSON.parse(customJacksonMapper, object).getJacksonNode());
+        if (QOneOf.class.isAssignableFrom(toClass)) {
+            QOneOf oneOf = newOneOf(toClass.asSubclass(QOneOf.class));
+            if (object == null) {
+                oneOf.value = null;
+                return (T) oneOf;
             }
 
-            return JSON.parse(customJacksonMapper, target);
-        }
+            var objectValue = object instanceof QOneOf<?> qOneOf ? qOneOf.getRawValue() : object;
 
-        public JSON parse(Object object) {
-            return JSON.parse(customJacksonMapper, object);
-        }
+            if (objectValue == null) {
+                oneOf.value = null;
+            } else if (objectValue instanceof String || objectValue instanceof Boolean
+                || objectValue instanceof Long || objectValue instanceof BigDecimal) {
+                // 不可变标量直接赋值，避免convertValue的token往返
+                oneOf.value = objectValue;
+            } else if (objectValue instanceof Integer) {
+                oneOf.value = ((Number) objectValue).longValue();
+            } else if (objectValue instanceof Number) {
+                oneOf.value = jacksonMapper.convertValue(objectValue, BigDecimal.class);
+            } else if (objectValue instanceof List<?>) {
+                oneOf.value = jacksonMapper.convertValue(objectValue, ArrayList.class);
+            } else if (objectValue instanceof Map<?, ?>) {
+                oneOf.value = jacksonMapper.convertValue(objectValue, LinkedHashMap.class);
+            } else {
+                oneOf.value = jacksonMapper.convertValue(objectValue, objectValue.getClass());
+            }
 
+            return (T) oneOf;
+        } else {
+            return object == null ? null : jacksonMapper.convertValue(object, toClass);
+        }
     }
+
+    @SneakyThrows
+    private static Constructor<?> getConstructorUnchecked(Class<?> type) {
+        return type.getConstructor();
+    }
+
+    @SneakyThrows
+    public static <T> T newOneOf(Class<T> type) {
+        return (T) ONEOF_CONSTRUCTOR_CACHE
+            .computeIfAbsent(type, JSON::getConstructorUnchecked)
+            .newInstance();
+    }
+
+    @SneakyThrows
+    private static String stringify(ObjectMapper jacksonMapper, Object object) {
+        return stringify(jacksonMapper, object, false, -1);
+    }
+
+    @SneakyThrows
+    private static String stringify(ObjectMapper jacksonMapper, Object object, boolean pretty, int spaceAmount) {
+        if (pretty) {
+            PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
+            return writer(jacksonMapper).with(printer).writeValueAsString(object);
+        } else {
+            return writer(jacksonMapper).writeValueAsString(object);
+        }
+    }
+
+    private static JSON warp(ObjectMapper jacksonMapper, JsonNode object) {
+        return new JSON(object, jacksonMapper);
+    }
+    // </editor-fold>
+
 }

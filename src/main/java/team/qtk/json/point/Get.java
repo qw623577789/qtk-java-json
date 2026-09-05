@@ -2,6 +2,7 @@ package team.qtk.json.point;
 
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import lombok.Getter;
@@ -32,7 +33,7 @@ public class Get {
     @Getter
     private Node valueNode;
 
-    private final HashMap<Pattern, DefaultType> regexpDefaultValueMapper = new HashMap<>();
+    private HashMap<Pattern, DefaultType> regexpDefaultValueMapper;
 
     private boolean nullable = false;
 
@@ -40,15 +41,18 @@ public class Get {
 
     public Get(JsonNode value, HashMap<String, DefaultType> defaultValueMapper, JSON jsonHelper) {
         this.valueNode = Node.gen(value, ".");
-        defaultValueMapper
-            .forEach((key, value1) -> this.regexpDefaultValueMapper.put(
-                Pattern.compile(
-                    "^" +
-                        this.escapeExprSpecialWord(key).replaceAll("\\*", "d+") +
-                        "$"
-                ),
-                value1
-            ));
+        if (defaultValueMapper != null && !defaultValueMapper.isEmpty()) {
+            this.regexpDefaultValueMapper = new HashMap<>();
+            defaultValueMapper
+                .forEach((key, value1) -> this.regexpDefaultValueMapper.put(
+                    Pattern.compile(
+                        "^" +
+                            this.escapeExprSpecialWord(key).replaceAll("\\*", "d+") +
+                            "$"
+                    ),
+                    value1
+                ));
+        }
         this.jsonHelper = jsonHelper;
     }
 
@@ -102,6 +106,8 @@ public class Get {
 
         if (absouleBreakcrumb.equals(".") || absouleBreakcrumb.equals("?.")) return this;
 
+        boolean isWildcardPath = absouleBreakcrumb.contains("[*]");
+
         var matchResults = BREADCRUMB_PATTERN.matcher(absouleBreakcrumb).results().toList();
         int size = matchResults.size();
 
@@ -109,9 +115,11 @@ public class Get {
             var node = matchResults.get(i);
             boolean isLastKey = i == size - 1;
 
-            String key = node.group().substring(node.group().indexOf(".") + 1).replaceAll("\"", "");
+            String nodeGroup = node.group();
 
-            boolean hasNullishKey = supportNullishKey && node.group().startsWith("?");
+            String key = nodeGroup.substring(nodeGroup.indexOf(".") + 1).replace("\"", "");
+
+            boolean hasNullishKey = supportNullishKey && nodeGroup.startsWith("?");
 
             // 若节点为非数组，也处理成数组，下面结果输出时再转化出来
             if (!this.valueNode.isArray()) {
@@ -136,7 +144,7 @@ public class Get {
             }
 
             // 若路径中存在[*],那结果肯定为数组，否则只需取第一个元素即可(上面非数组节点特殊处理后的转化)
-            this.valueNode = absouleBreakcrumb.contains("[*]") ? returnNodes : returnNodes.get(0);
+            this.valueNode = isWildcardPath ? returnNodes : returnNodes.get(0);
         }
 
         return this;
@@ -299,27 +307,22 @@ public class Get {
     }
 
     private Node fixValueWithDefault(String nodePath, Node node, String fieldName) {
-        DefaultType defaultType =
-            this.regexpDefaultValueMapper.entrySet()
+        DefaultType defaultType = null;
+        if (this.regexpDefaultValueMapper != null) {
+            defaultType = this.regexpDefaultValueMapper.entrySet()
                 .stream()
                 .filter(entry -> entry.getKey().asPredicate().test(nodePath.startsWith(".") ? nodePath : "." + nodePath))
                 .findFirst()
                 .map(Map.Entry::getValue)
                 .orElse(null);
+        }
 
         if (defaultType == null) return Node.createMissingNode(nodePath);
 
         Object defaultValue = defaultType.getValue();
         if (defaultValue instanceof Supplier) defaultValue = ((Supplier<?>) defaultValue).get();
 
-        JsonNode jacksonNode;
-        if (defaultValue instanceof JSON) {
-            jacksonNode = ((JSON) defaultValue).getJacksonNode().deepCopy();
-        } else if (defaultValue instanceof JsonNode) {
-            jacksonNode = ((JsonNode) defaultValue).deepCopy();
-        } else {
-            jacksonNode = this.jsonHelper.jackson.valueToTree(defaultValue);
-        }
+        JsonNode jacksonNode = jsonHelper.toJsonNode(defaultValue);
 
         Node fixNode = Node.gen(jacksonNode, nodePath);
 
@@ -350,7 +353,8 @@ public class Get {
     public String toString(boolean pretty, int spaceAmount) {
         if (pretty) {
             PrettyPrinter printer = new JsonStringifyPrettyPrinter(spaceAmount);
-            return this.jsonHelper.jackson.writer(printer)
+            return JSON.writer(this.jsonHelper.jackson)
+                .with(printer)
                 .writeValueAsString(this.valueNode.getJacksonNode());
         } else {
             return this.valueNode.getJacksonNode().toString();
@@ -397,8 +401,13 @@ public class Get {
         return as(Float.class);
     }
 
+    /**
+     * 深拷贝方法
+     *
+     * @return
+     */
     public JSON asJSON() {
-        return JSON.parse(this.valueNode.getJacksonNode());
+        return new JSON(this.valueNode.getJacksonNode().deepCopy(), this.jsonHelper.jackson);
     }
 
     @SneakyThrows
@@ -416,43 +425,56 @@ public class Get {
          * 根节点是QOneOf的话，在此执行解析
          */
         if (QOneOf.class.isAssignableFrom(type)) {
-            QOneOf oneOf = (QOneOf) type.getConstructor().newInstance();
+            QOneOf oneOf = JSON.newOneOf(type.asSubclass(QOneOf.class));
             if (!this.valueNode.isNull()) {
                 var jackNode = this.valueNode.getJacksonNode();
                 if (jackNode.isTextual()) {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), String.class);
+                    oneOf.value = jackNode.textValue();
                 } else if (jackNode.isBoolean()) {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Boolean.class);
-                } else if (jackNode.isInt()) {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class);
-                } else if (jackNode.isLong()) {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Long.class);
+                    oneOf.value = jackNode.booleanValue();
+                } else if (jackNode.isInt() || jackNode.isLong()) {
+                    oneOf.value = jackNode.longValue();
                 } else if (jackNode.isNumber()) {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), BigDecimal.class);
+                    oneOf.value = jackNode.decimalValue();
                 } else if (jackNode.isArray()) {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), ArrayList.class);
+                    oneOf.value = this.jsonHelper.jackson.convertValue(jackNode, ArrayList.class);
                 } else if (jackNode.isObject()) {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), LinkedHashMap.class);
+                    oneOf.value = this.jsonHelper.jackson.convertValue(jackNode, LinkedHashMap.class);
                 } else {
-                    oneOf.value = this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), Object.class);
+                    oneOf.value = this.jsonHelper.jackson.convertValue(jackNode, Object.class);
                 }
             }
             return (T) oneOf;
-        } else {
-            if (this.valueNode.isNull()) {
-                return null;
-            } else {
-                return this.jsonHelper.jackson.convertValue(this.valueNode.getJacksonNode(), type);
-            }
         }
+
+        if (this.valueNode.isNull()) {
+            return null;
+        }
+
+        var jackNode = this.valueNode.getJacksonNode();
+
+        // 标量类型且节点类型匹配时直接取值，避免convertValue的ObjectReader创建开销
+        if (type == String.class && jackNode.isTextual()) {
+            return (T) jackNode.textValue();
+        } else if (type == Boolean.class && jackNode.isBoolean()) {
+            return (T) Boolean.valueOf(jackNode.booleanValue());
+        } else if (type == Integer.class && jackNode.isInt()) {
+            return (T) Integer.valueOf(jackNode.intValue());
+        } else if (type == Long.class && (jackNode.isInt() || jackNode.isLong())) {
+            return (T) Long.valueOf(jackNode.longValue());
+        } else if (type == Double.class && jackNode.isNumber() && !jackNode.isBigInteger()) {
+            return (T) Double.valueOf(jackNode.doubleValue());
+        } else if (type == Float.class && jackNode.isNumber() && !jackNode.isBigInteger()) {
+            return (T) Float.valueOf(jackNode.floatValue());
+        } else if (type == BigDecimal.class && jackNode.isNumber()) {
+            return (T) jackNode.decimalValue();
+        }
+
+        return this.jsonHelper.jackson.convertValue(jackNode, type);
     }
 
     public List<Object> asList() {
-        return asList(Object.class, true);
-    }
-
-    public <T> List<T> asList(Class<T> itemType) {
-        return asList(itemType, true);
+        return asList(Object.class);
     }
 
     public int size() {
@@ -461,7 +483,8 @@ public class Get {
         return valueNode.getJacksonNode().size();
     }
 
-    public <T> List<T> asList(Class<T> itemType, boolean ignoreMissingNode) {
+    @SneakyThrows
+    public <T> List<T> asList(Class<T> itemType) {
         if (valueNode.isNull()) return null;
 
         if (valueNode.isMissingNode()) {
@@ -490,21 +513,21 @@ public class Get {
         if (!valueNode.isArray()) throw new RuntimeException("最终节点非数组节点");
 
         if (itemType == JSON.class) return this.valueNode.stream()
-            .map(item -> (T) JSON.parse(item.getJacksonNode()))
+            .map(item -> (T) new JSON(item.getJacksonNode().deepCopy(), this.jsonHelper.jackson))
             .collect(Collectors.toList());
 
+        ObjectReader reader = this.jsonHelper.jackson.readerFor(itemType);
+
         ArrayList<T> list = new ArrayList<>();
-        valueNode
-            .getJacksonNode()
-            .elements()
-            .forEachRemaining(
-                item -> {
-                    if (!item.isMissingNode()) list.add(this.jsonHelper.jackson.convertValue(item, itemType));
-                }
-            );
+        var elements = valueNode.getJacksonNode().elements();
+        while (elements.hasNext()) {
+            JsonNode item = elements.next();
+            if (!item.isMissingNode()) list.add(reader.readValue(item));
+        }
         return list;
     }
 
+    @SneakyThrows
     public <T> HashMap<String, T> asMap(Class<T> valueType) {
         if (valueNode.isNull()) return null;
 
@@ -518,15 +541,13 @@ public class Get {
 
         if (!valueNode.isObject()) throw new RuntimeException("最终节点非对象节点");
 
+        ObjectReader reader = this.jsonHelper.jackson.readerFor(valueType);
+
         HashMap<String, T> map = new HashMap<>();
 
-        valueNode
-            .getJacksonNode()
-            .fields()
-            .forEachRemaining(
-                entry ->
-                    map.put(entry.getKey(), this.jsonHelper.jackson.convertValue(entry.getValue(), valueType))
-            );
+        for (Map.Entry<String, JsonNode> entry : valueNode.getJacksonNode().properties()) {
+            map.put(entry.getKey(), reader.readValue(entry.getValue()));
+        }
 
         return map;
     }

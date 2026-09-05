@@ -30,7 +30,7 @@ public class QOneOf<T extends QOneOf> {
     }
 
     public String toString() {
-        return JSON.parse(this).toString();
+        return JSON.stringify(this);
     }
 
     public boolean isBoolean() {
@@ -80,11 +80,11 @@ public class QOneOf<T extends QOneOf> {
     }
 
     public <TT> TT to(Class<TT> transforClass) {
-        return JSON.parse(this).getAs(transforClass);
+        return JSON.clone(this, transforClass);
     }
 
     public T clone() {
-        return (T) JSON.parse(this).deepCopy().getAs(this.getClass());
+        return (T) JSON.clone(this, this.getClass());
     }
 
 }

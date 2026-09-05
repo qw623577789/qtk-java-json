@@ -5,15 +5,12 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Arrays;
 import java.util.stream.Stream;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Node {
@@ -85,7 +82,7 @@ public class Node {
 
     public void remove(String... fieldNames) {
         if (this.jacksonNode.isMissingNode()) return;
-        ((ObjectNode) this.jacksonNode).remove(Arrays.asList(fieldNames));
+        for (String fieldName : fieldNames) ((ObjectNode) this.jacksonNode).remove(fieldName);
     }
 
     public Node retain(String... fieldNames) {
