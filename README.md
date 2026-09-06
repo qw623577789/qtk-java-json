@@ -32,7 +32,7 @@ dependencies {
 
 - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
 - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
-- **JSON parse(Object object)** 可将大部分Java对象(*Class、Map、List、File、Reader*)转换为JSON实例
+- **JSON parse(Object object)** 可将大部分Java对象(*Class、Map、List、File、Reader*)转换为JSON实例, ``byte[]``按UTF-8编码的JSON文本解析(*非法JSON二进制会抛``JsonParseException``,空``byte[]``解析为``missing``节点*)
 - **String toString(boolean pretty, int spaceAmount)** 将JSON实例转换为JSON字符串, ``pretty``
   控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
 - **JSON deepCopy()** 深拷贝JSON实例
@@ -41,6 +41,7 @@ dependencies {
 - **JSON createObject()** 快速创建空对象的JSON实例
 - **JSON createArray()** 快速创建空数组的JSON实例
 - **JSON warp(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例(*不深拷贝,共享引用*)
+- **JSON warp(ObjectMapper jacksonMapper, JsonNode jacksonNode)** 同上, 可指定``ObjectMapper``(*用于CustomJSON自定义mapper场景*)
 - **List\<String\> keys()** 获取JSON对象的所有key
 - **List\<JSON\> values()** 获取JSON对象的所有value(*共享引用,修改会影响原数据*)
 - **List\<Map.Entry\<String, JsonNode\>\> entries()** 获取JSON对象的所有key/value条目(*共享引用*)
@@ -64,6 +65,11 @@ dependencies {
   *JSON实例*
 - **JSON add(Object ...value)** 在**JSON数组实例**上一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
 - **JSON concat(List<?> list)** 在**JSON数组实例**上添加存于``List``的元素，value支持*大部分Java对象*及*JSON实例*
+- **JSON sPutRef(String id, JSON value)** *静态方法*, 同``sPut``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+- **JSON putRef(String id, JSON value)** 同``put``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+- **JSON sAddRef(JSON... value)** *静态方法*, 同``sAdd``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+- **JSON addRef(JSON... value)** 同``add``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+- **JSON concatRef(List<JSON> list)** 同``concat``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
 
 ### JSON Point指针操作 Get/Put/Delete/Has/Add/Concat
 
@@ -85,7 +91,7 @@ dependencies {
           *Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**LocalDateTime asLocalDateTime()**、**Object
           asObject()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList()**、**\<T\> List\<T\>
           asList(Class\<T\> itemType)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String,
-          Object\> asMap()**、**JSON asJSON()**、**size()**
+          Object\> asMap()**、**JSON asJSON()**、**JSON asJSON(boolean toClone)**(*false时共享引用,修改会影响原数据*)、**size()**
         - **boolean isArray()** 返回节点是否为数组节点
         - **boolean isObject()** 返回节点是否为对象节点
         - **boolean isNull()** 返回节点是否为Null节点
@@ -107,6 +113,9 @@ dependencies {
       *com.fasterxml.jackson的``JsonNode``**
     - **JSON concat(List\<Object\> list)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、*
       *com.fasterxml.jackson的``JsonNode``**
+    - **JSON putRef(String id, JSON value)/JSON putRef(JSON value)** 同``put``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+    - **JSON addRef(JSON... items)** 同``add``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+    - **JSON concatRef(List\<JSON\> list)** 同``concat``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
     - **boolean has()** 判断point对应节点值有没有存在(*默认会开启默认值特性*)
     - **boolean has(boolean toWithDefault)** 判断point对应节点值有没有存在,可设定启不启用*默认值特性*
     - **JSON delete()** 删除point节点的值
@@ -118,6 +127,12 @@ dependencies {
     - **JSON retain(String... fieldName)** 只保留当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
     - **JSON exclude(String... fieldName)** 排除当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
     - **JSON rmNull()** 删除point对象节点下所有为null的key
+    - **JSON merge(Object value)/JSON merge(Object... keyValues)/JSON mergeIgnoreNull(Object value)/JSON mergeIgnoreNull(Object...
+      keyValues)/JSON mergeDeep(Object value)/JSON mergeDeep(Object... keyValues)/JSON mergeDeepIgnoreNull(Object value)/JSON
+      mergeDeepIgnoreNull(Object... keyValues)** 在point指向的JSON对象节点上执行合并(*合并语义与JSON实例merge系列一致,详见下方JSON合并章节*
+      ),数组节点(*含``[*]``遍历*)逐元素合并,返回point所在的JSON实例
+    - **JSON deepCopy()** 深拷贝point指向的节点,返回独立的JSON实例(*修改不影响原数据*)
+    - **String toString(boolean pretty, int spaceAmount)** 将point指向的节点转换为JSON字符串,``pretty``控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
 
 ### JSON摘取/忽略节点
 
@@ -137,6 +152,7 @@ dependencies {
 - **(实例方法)JSON mergeDeep(Object... keyValues)** (*所有节点值合并*)使用K-V形式赋值到当前对象
 - **(实例方法)JSON mergeDeepIgnoreNull(Object value)** (*所有节点值合并*)将所有可枚举属性的值对象移除null值后复制到当前对象
 - **(实例方法)JSON mergeDeepIgnoreNull(Object... keyValues)** (*所有节点值合并*)使用K-V形式移除null值后赋值到当前对象
+- **Point merge系列** 在point指向的节点上执行合并, 支持``[*]``遍历逐元素合并, 返回point所在的JSON实例
 
 ### 定制JSON库特性(Jackson特性)
 
@@ -504,6 +520,28 @@ json
     );
 ```
 
+### Point.merge
+
+```groovy
+// 合并到point指向的节点
+json.point(".ListMap[0]").merge("newKey", "newValue");
+
+// 移除null值后合并
+json.point(".ListMap[0]").mergeIgnoreNull("k1", null, "k2", "v2");
+
+// 深合并
+json.point(".ListMap[0].id3[0][0].id33").mergeDeep("{\"inner\":1}");
+
+// 遍历逐元素合并
+json.point(".ListMap[*]").merge("newKey", "newValue");
+
+// 深拷贝point指向的节点(修改副本不影响原数据)
+JSON copy = json.point(".ListMap[0]").deepCopy();
+
+// point指向的节点转JSON字符串
+String str = json.point(".ListMap[0]").toString(true, 2);
+```
+
 ### 时间转换
 
 ```groovy
@@ -566,6 +604,14 @@ json.getNullableXXX(".point"); //等同于json.point(".point").get(true).asXXX()
 json.getNullableXXX(); //等同于json.point(".").get(true).asXXX()
 
 json.getNullableXXX(".point", "defaultValue"); //等同于json.point(".point").get(true).defaultValue("defaultValue").asXXX()
+
+json.getRefJSON(".point"); //等同于json.point(".point").get().asJSON(false) (共享引用,修改会影响原数据)
+
+json.getRefJSON(".point", defaultValue); //等同于json.point(".point", defaultValue).get().asJSON(false) (共享引用)
+
+json.getNullableRefJSON(".point"); //等同于json.point(".point").get(true).asJSON(false) (共享引用)
+
+json.getNullableRefJSON(".point", defaultValue); //等同于json.point(".point", defaultValue).get(true).asJSON(false) (共享引用)
 ```
 
 ### 注意
@@ -574,3 +620,5 @@ json.getNullableXXX(".point", "defaultValue"); //等同于json.point(".point").g
     - 例如: point(".a[1].b", "1").asList(), 意思为给a数组下标为1的对象的b节点赋值1; point(".a", new
       ArrayList\<String\>(){}).asList(),意思是当对象的a节点不存在时,给对象添加一个数组节点a
 - 若point路径某段字段带``.``，那段字段要加上引号。例如{"a": {"aa.bb": 1}}, point正确应该为``.a."aa.bb"``
+- ``byte[]``统一按UTF-8编码的JSON文本解析(*含``put``/``add``等所有值入口*), 若要存放原始二进制请先自行编码为``String``(
+  例如``Base64``)后再传入

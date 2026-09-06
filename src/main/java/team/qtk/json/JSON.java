@@ -74,8 +74,16 @@ public class JSON {
         return sPut(defaultJackson, id, value);
     }
 
+    public static JSON sPutRef(String id, JSON value) {
+        return sPutRef(defaultJackson, id, value);
+    }
+
     public static JSON sAdd(Object... value) {
         return sAdd(defaultJackson, value);
+    }
+
+    public static JSON sAddRef(JSON... value) {
+        return sAddRef(defaultJackson, value);
     }
 
     public static JSON createObject() {
@@ -102,8 +110,18 @@ public class JSON {
     }
 
     @SneakyThrows
+    public static byte[] toJsonBytes(Object object, boolean pretty, int spaceAmount) {
+        return toJsonBytes(defaultJackson, object, pretty, spaceAmount);
+    }
+
+    @SneakyThrows
     public static String stringify(Object object) {
         return stringify(defaultJackson, object, false, -1);
+    }
+
+    @SneakyThrows
+    public static byte[] toJsonBytes(Object object) {
+        return toJsonBytes(defaultJackson, object, false, -1);
     }
 
     public static JSON warp(JsonNode object) {
@@ -200,8 +218,16 @@ public class JSON {
             return JSON.sPut(customJacksonMapper, id, value);
         }
 
+        public JSON sPutRef(String id, JSON value) {
+            return JSON.sPutRef(customJacksonMapper, id, value);
+        }
+
         public JSON sAdd(Object... value) {
             return JSON.sAdd(customJacksonMapper, value);
+        }
+
+        public JSON sAddRef(JSON... value) {
+            return JSON.sAddRef(customJacksonMapper, value);
         }
 
         public JSON createObject() {
@@ -227,8 +253,18 @@ public class JSON {
         }
 
         @SneakyThrows
+        public byte[] toJsonBytes(Object object, boolean pretty, int spaceAmount) {
+            return JSON.toJsonBytes(customJacksonMapper, object, pretty, spaceAmount);
+        }
+
+        @SneakyThrows
         public String stringify(Object object) {
             return JSON.stringify(customJacksonMapper, object, false, -1);
+        }
+
+        @SneakyThrows
+        public byte[] toJsonBytes(Object object) {
+            return JSON.toJsonBytes(customJacksonMapper, object, false, -1);
         }
 
         public JSON warp(JsonNode object) {
@@ -255,6 +291,8 @@ public class JSON {
             return json.getJacksonNode().deepCopy();
         } else if (object instanceof Reader reader) {
             return reader(jackson).readTree(reader);
+        } else if (object instanceof byte[] b) {
+            return reader(jackson).readTree(b);
         } else if (object instanceof JsonNode jsonNode) {
             // valueToTree对JsonNode会直接返回原实例，deepCopy避免后续修改污染外部持有的节点
             return jsonNode.deepCopy();
@@ -357,6 +395,12 @@ public class JSON {
         return this;
     }
 
+    public JSON putRef(String id, JSON value) {
+        ObjectNode objectNode = (ObjectNode) (this.json);
+        objectNode.set(id, value.getJacksonNode());
+        return this;
+    }
+
     public JSON add(Object... value) {
         ArrayNode arrayNode = (ArrayNode) this.json;
 
@@ -369,12 +413,29 @@ public class JSON {
         return this;
     }
 
+    public JSON addRef(JSON... value) {
+        ArrayNode arrayNode = (ArrayNode) this.json;
+
+        if (value == null) {
+            arrayNode.add(NullNode.getInstance());
+        } else {
+            for (JSON item : value) arrayNode.add(item.getJacksonNode());
+        }
+
+        return this;
+    }
+
     public JSON rmNull() {
         return this.point().rmNull();
     }
 
     public JSON concat(List<?> list) {
         add(list.toArray());
+        return this;
+    }
+
+    public JSON concatRef(List<JSON> list) {
+        addRef(list.toArray(JSON[]::new));
         return this;
     }
 
@@ -1244,6 +1305,72 @@ public class JSON {
         return getNullableJSON(".", defaultValueMap);
     }
 
+    //
+    public JSON getRefJSON(String point) {
+        return this.point(point).get().asJSON(false);
+    }
+
+    public JSON getRefJSON() {
+        return getRefJSON(".");
+    }
+
+    public JSON getRefJSON(String point, JSON defaultValue) {
+        return this.point(point, defaultValue).get().asJSON(false);
+    }
+
+    public JSON getRefJSON(JSON defaultValue) {
+        return getRefJSON(".", defaultValue);
+    }
+
+    public JSON getRefJSON(String point, Supplier<JSON> defaultValueSupplier) {
+        return this.point(point, defaultValueSupplier).get().asJSON(false);
+    }
+
+    public JSON getRefJSON(Supplier<JSON> defaultValueSupplier) {
+        return getRefJSON(".", defaultValueSupplier);
+    }
+
+    public JSON getRefJSON(String point, Point.DefaultValueMap defaultValueMap) {
+        return this.point(point, defaultValueMap).get().asJSON(false);
+    }
+
+    public JSON getRefJSON(Point.DefaultValueMap defaultValueMap) {
+        return getRefJSON(".", defaultValueMap);
+    }
+
+    public JSON getNullableRefJSON(String point) {
+        return this.point(point).get(true).asJSON(false);
+    }
+
+    public JSON getNullableRefJSON() {
+        return getNullableRefJSON(".");
+    }
+
+    public JSON getNullableRefJSON(String point, JSON defaultValue) {
+        return this.point(point, defaultValue).get(true).asJSON(false);
+    }
+
+    public JSON getNullableRefJSON(JSON defaultValue) {
+        return getNullableRefJSON(".", defaultValue);
+    }
+
+    public JSON getNullableRefJSON(String point, Supplier<JSON> defaultValueSupplier) {
+        return this.point(point, defaultValueSupplier).get(true).asJSON(false);
+    }
+
+    public JSON getNullableRefJSON(Supplier<JSON> defaultValueSupplier) {
+        return getNullableRefJSON(".", defaultValueSupplier);
+    }
+
+    public JSON getNullableRefJSON(String point, Point.DefaultValueMap defaultValueMap) {
+        return this.point(point, defaultValueMap).get(true).asJSON(false);
+    }
+
+    public JSON getNullableRefJSON(Point.DefaultValueMap defaultValueMap) {
+        return getNullableRefJSON(".", defaultValueMap);
+    }
+
+    //
     public <T> List<T> getList(String point, Class<T> itemType) {
         return this.point(point).get().asList(itemType);
     }
@@ -1624,9 +1751,21 @@ public class JSON {
         return json;
     }
 
+    private static JSON sPutRef(ObjectMapper jacksonMapper, String id, JSON value) {
+        JSON json = new JSON(true, jacksonMapper);
+        json.putRef(id, value);
+        return json;
+    }
+
     private static JSON sAdd(ObjectMapper jacksonMapper, Object... value) {
         JSON json = new JSON(false, jacksonMapper);
         json.add(value);
+        return json;
+    }
+
+    private static JSON sAddRef(ObjectMapper jacksonMapper, JSON... value) {
+        JSON json = new JSON(false, jacksonMapper);
+        json.addRef(value);
         return json;
     }
 
@@ -1716,7 +1855,17 @@ public class JSON {
         }
     }
 
-    private static JSON warp(ObjectMapper jacksonMapper, JsonNode object) {
+    @SneakyThrows
+    private static byte[] toJsonBytes(ObjectMapper jacksonMapper, Object object, boolean pretty, int spaceAmount) {
+        if (pretty) {
+            PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
+            return writer(jacksonMapper).with(printer).writeValueAsBytes(object);
+        } else {
+            return writer(jacksonMapper).writeValueAsBytes(object);
+        }
+    }
+
+    public static JSON warp(ObjectMapper jacksonMapper, JsonNode object) {
         return new JSON(object, jacksonMapper);
     }
     // </editor-fold>

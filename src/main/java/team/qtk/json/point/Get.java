@@ -407,7 +407,13 @@ public class Get {
      * @return
      */
     public JSON asJSON() {
-        return new JSON(this.valueNode.getJacksonNode().deepCopy(), this.jsonHelper.jackson);
+        return asJSON(true);
+    }
+
+    public JSON asJSON(boolean toClone) {
+        return new JSON(
+            toClone ? this.valueNode.getJacksonNode().deepCopy() : this.valueNode.getJacksonNode(), this.jsonHelper.jackson
+        );
     }
 
     @SneakyThrows

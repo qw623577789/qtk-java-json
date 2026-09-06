@@ -4,6 +4,7 @@
 package team.qtk.json;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import team.qtk.json.point.Point.DefaultValueMap;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -4013,5 +4015,97 @@ class JSONTest {
     @Test
     void objEntries() {
         assertEquals("[a=1, c=\"2\"]", JSON.sPut("a", 1).put("c", "2").entries().toString());
+    }
+
+    @Test
+    void pointMerge() {
+        JSON json = JSON.parse("{\"a\":{\"x\":1},\"list\":[{\"n\":1},{\"n\":2}],\"b\":{\"p\":{\"q\":1}}}");
+
+        assertSame(json, json.point(".a").merge("y", 2));
+        assertEquals(
+            "{\"a\":{\"x\":1,\"y\":2},\"list\":[{\"n\":1},{\"n\":2}],\"b\":{\"p\":{\"q\":1}}}",
+            json.toString()
+        );
+
+        json.point(".a").mergeIgnoreNull("y", null, "z", 3);
+        assertEquals(
+            "{\"a\":{\"x\":1,\"y\":2,\"z\":3},\"list\":[{\"n\":1},{\"n\":2}],\"b\":{\"p\":{\"q\":1}}}",
+            json.toString()
+        );
+
+        json.point(".b").mergeDeep("{\"p\":{\"r\":2},\"new\":true}");
+        assertEquals(
+            "{\"a\":{\"x\":1,\"y\":2,\"z\":3},\"list\":[{\"n\":1},{\"n\":2}],\"b\":{\"p\":{\"q\":1,\"r\":2},\"new\":true}}",
+            json.toString()
+        );
+
+        json.point(".b").mergeDeepIgnoreNull("{\"p\":{\"s\":4},\"n2\":null}");
+        assertEquals(
+            "{\"a\":{\"x\":1,\"y\":2,\"z\":3},\"list\":[{\"n\":1},{\"n\":2}],\"b\":{\"p\":{\"q\":1,\"r\":2,\"s\":4},\"new\":true}}",
+            json.toString()
+        );
+
+        json.point(".list[*]").merge("m", 9);
+        assertEquals(
+            "{\"a\":{\"x\":1,\"y\":2,\"z\":3},\"list\":[{\"n\":1,\"m\":9},{\"n\":2,\"m\":9}],\"b\":{\"p\":{\"q\":1,\"r\":2,\"s\":4},\"new\":true}}",
+            json.toString()
+        );
+
+        json.point(".list").mergeDeep("{\"n2\":5}");
+        assertEquals(
+            "{\"a\":{\"x\":1,\"y\":2,\"z\":3},\"list\":[{\"n\":1,\"m\":9,\"n2\":5},{\"n\":2,\"m\":9,\"n2\":5}],\"b\":{\"p\":{\"q\":1,\"r\":2,\"s\":4},\"new\":true}}",
+            json.toString()
+        );
+
+        RuntimeException scalarErr = assertThrows(
+            RuntimeException.class,
+            () -> json.point(".a.x").merge("m", 9)
+        );
+        assertEquals("非对象无法merge", scalarErr.getMessage());
+
+        RuntimeException missingErr = assertThrows(
+            RuntimeException.class,
+            () -> json.point(".nope").merge("m", 9)
+        );
+        assertEquals("非对象无法merge", missingErr.getMessage());
+
+        assertThrows(IllegalArgumentException.class, () -> json.point(".a").merge("y", 1, "z"));
+    }
+
+    @Test
+    void pointDeepCopy() {
+        JSON json = JSON.parse("{\"a\":{\"x\":1}}");
+
+        JSON copy = json.point(".a").deepCopy();
+        copy.put("x", 999);
+
+        assertEquals("{\"a\":{\"x\":1}}", json.toString());
+        assertEquals("{\"x\":999}", copy.toString());
+    }
+
+    @Test
+    void pointToString() {
+        JSON json = JSON.parse("{\"a\":{\"x\":1}}");
+
+        assertEquals("{\"x\":1}", json.point(".a").toString());
+        assertEquals("{\n  \"x\": 1\n}", json.point(".a").toString(true, 2));
+        assertEquals("{\n    \"x\": 1\n}", json.point(".a").toString(true));
+    }
+
+    @Test
+    void parseByteArray() {
+        JSON json = JSON.parse("{\"a\":1}".getBytes(StandardCharsets.UTF_8));
+        assertEquals("{\"a\":1}", json.toString());
+
+        JSON arrayJson = JSON.parse("[1,2]".getBytes(StandardCharsets.UTF_8));
+        assertEquals("[1,2]", arrayJson.toString());
+
+        JSON obj = JSON.createObject().put("data", "[1,2,3]".getBytes(StandardCharsets.UTF_8));
+        assertEquals("{\"data\":[1,2,3]}", obj.toString());
+
+        assertThrows(JsonParseException.class, () -> JSON.parse(new byte[]{1, 2, 3, -1}));
+
+        JSON emptyBytes = JSON.parse(new byte[0]);
+        assertTrue(emptyBytes.getJacksonNode().isMissingNode());
     }
 }

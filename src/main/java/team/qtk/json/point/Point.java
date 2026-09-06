@@ -75,7 +75,29 @@ public class Point {
 
     public JSON put(String id, Object value) {
         JsonNode jacksonNode = jsonHelper.toJsonNode(value);
-        
+
+        String absouleBreakcrumb = this.breadcrumb + this.point;
+
+        Get pointValue = get(false, false, false);
+
+        if (absouleBreakcrumb.contains("[*]")) {
+            pointValue
+                .getValueNode()
+                .stream()
+                .forEach(
+                    operaNode -> operaNode.set(id, jacksonNode)
+                );
+        } else {
+            Node operaNode = pointValue.getValueNode();
+            operaNode.set(id, jacksonNode);
+        }
+
+        return this.jsonHelper;
+    }
+
+    public JSON putRef(String id, JSON value) {
+        JsonNode jacksonNode = value.getJacksonNode();
+
         String absouleBreakcrumb = this.breadcrumb + this.point;
 
         Get pointValue = get(false, false, false);
@@ -97,6 +119,33 @@ public class Point {
 
     public JSON put(Object value) {
         var jacksonNode = jsonHelper.toJsonNode(value);
+
+        String absoluteBreadcrumb = this.breadcrumb + this.point;
+
+        Object[] parentKeyInfo = this.getParentPointKey(absoluteBreadcrumb);
+        String parentPointKey = (String) parentKeyInfo[0];
+        String lastPointKey = (String) parentKeyInfo[1];
+
+        Get parentNode = new Get(this.instance, this.defaultValueMapper, this.jsonHelper);
+        parentNode.get("", parentPointKey, true, false, false);
+
+        if (absoluteBreadcrumb.contains("[*]")) {
+            parentNode
+                .getValueNode()
+                .stream()
+                .forEach(
+                    operaNode -> operaNode.set(lastPointKey, jacksonNode)
+                );
+        } else {
+            Node operaNode = parentNode.getValueNode();
+            operaNode.set(lastPointKey, jacksonNode);
+        }
+
+        return this.jsonHelper;
+    }
+
+    public JSON putRef(JSON value) {
+        var jacksonNode = value.getJacksonNode();
 
         String absoluteBreadcrumb = this.breadcrumb + this.point;
 
@@ -293,8 +342,32 @@ public class Point {
         return this.jsonHelper;
     }
 
+    public JSON addRef(JSON... items) {
+        Get pointValue = get(false, false, false);
+
+        String absoluteBreadcrumb = this.breadcrumb + this.point;
+
+        var jsonNodes = Arrays.stream(items).map(JSON::getJacksonNode).toList();
+
+        if (absoluteBreadcrumb.contains("[*]")) {
+            pointValue.getValueNode().stream().forEach(i -> {
+                team.qtk.json.node.ArrayNode operaNode = (team.qtk.json.node.ArrayNode) i;
+                jsonNodes.forEach(operaNode::add);
+            });
+        } else {
+            team.qtk.json.node.ArrayNode operaNode = (team.qtk.json.node.ArrayNode) pointValue.getValueNode();
+            jsonNodes.forEach(operaNode::add);
+        }
+
+        return this.jsonHelper;
+    }
+
     public JSON concat(List<Object> list) {
         return add(list.toArray());
+    }
+
+    public JSON concatRef(List<JSON> list) {
+        return addRef(list.toArray(JSON[]::new));
     }
 
     public JSON rmNull() {
@@ -377,6 +450,84 @@ public class Point {
      */
     public JSON backToJSON() {
         return this.jsonHelper;
+    }
+
+    public JSON merge(Object... keyValues) {
+        toJSONs().forEach(json -> json.merge(keyValues));
+        return this.jsonHelper;
+    }
+
+    public JSON merge(Object value) {
+        toJSONs().forEach(json -> json.merge(value));
+        return this.jsonHelper;
+    }
+
+    public JSON mergeIgnoreNull(Object value) {
+        toJSONs().forEach(json -> json.mergeIgnoreNull(value));
+        return this.jsonHelper;
+    }
+
+    public JSON mergeIgnoreNull(Object... keyValues) {
+        toJSONs().forEach(json -> json.mergeIgnoreNull(keyValues));
+        return this.jsonHelper;
+    }
+
+    public JSON mergeDeep(Object... keyValues) {
+        toJSONs().forEach(json -> json.mergeDeep(keyValues));
+        return this.jsonHelper;
+    }
+
+    public JSON mergeDeep(Object value) {
+        toJSONs().forEach(json -> json.mergeDeep(value));
+        return this.jsonHelper;
+    }
+
+    public JSON mergeDeepIgnoreNull(Object value) {
+        toJSONs().forEach(json -> json.mergeDeepIgnoreNull(value));
+        return this.jsonHelper;
+    }
+
+    public JSON mergeDeepIgnoreNull(Object... keyValues) {
+        toJSONs().forEach(json -> json.mergeDeepIgnoreNull(keyValues));
+        return this.jsonHelper;
+    }
+
+    // 将point指向的节点warp成JSON(共享引用)，单值包一层，数组节点逐元素包裹
+    private List<JSON> toJSONs() {
+        Get pointValue = get(false, false, false);
+
+        if (pointValue.isArray()) {
+            return pointValue
+                .getValueNode()
+                .stream()
+                .map(
+                    node -> {
+                        if (!node.isObject()) throw new RuntimeException("非对象无法merge");
+                        return JSON.warp(jsonHelper.jackson, node.getJacksonNode());
+                    }
+                )
+                .toList();
+        }
+
+        Node valueNode = pointValue.getValueNode();
+        if (!valueNode.isObject()) throw new RuntimeException("非对象无法merge");
+        return List.of(JSON.warp(jsonHelper.jackson, valueNode.getJacksonNode()));
+    }
+
+    public JSON deepCopy() {
+        return get().asJSON();
+    }
+
+    public String toString(boolean pretty) {
+        return get().toString(pretty);
+    }
+
+    public String toString() {
+        return get().toString();
+    }
+
+    public String toString(boolean pretty, int spaceAmount) {
+        return get().toString(pretty, spaceAmount);
     }
 
     @Builder
