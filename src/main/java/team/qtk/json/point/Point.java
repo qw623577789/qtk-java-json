@@ -1,11 +1,14 @@
 package team.qtk.json.point;
 
+import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import team.qtk.json.JSON;
+import team.qtk.json.JsonStringifyPrettyPrinter;
 import team.qtk.json.node.Node;
 
 import java.util.Arrays;
@@ -528,6 +531,25 @@ public class Point {
 
     public String toString(boolean pretty, int spaceAmount) {
         return get().toString(pretty, spaceAmount);
+    }
+
+    public byte[] toJsonBytes() {
+        return toJsonBytes(false);
+    }
+
+    public byte[] toJsonBytes(boolean pretty) {
+        return toJsonBytes(pretty, 4);
+    }
+
+    @SneakyThrows
+    public byte[] toJsonBytes(boolean pretty, int spaceAmount) {
+        JsonNode node = get().getValueNode().getJacksonNode();
+        if (pretty) {
+            PrettyPrinter printer = new JsonStringifyPrettyPrinter(spaceAmount);
+            return JSON.writer(this.jsonHelper.jackson).with(printer).writeValueAsBytes(node);
+        } else {
+            return JSON.writer(this.jsonHelper.jackson).writeValueAsBytes(node);
+        }
     }
 
     @Builder

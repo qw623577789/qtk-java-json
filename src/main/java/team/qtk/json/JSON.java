@@ -17,6 +17,7 @@ import team.qtk.json.point.Point;
 import team.qtk.stream.Stream;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
@@ -294,6 +295,8 @@ public class JSON {
             return json.getJacksonNode().deepCopy();
         } else if (object instanceof Reader reader) {
             return reader(jackson).readTree(reader);
+        } else if (object instanceof InputStream in) {
+            return reader(jackson).readTree(in);
         } else if (object instanceof byte[] b) {
             return reader(jackson).readTree(b);
         } else if (object instanceof JsonNode jsonNode) {
@@ -564,6 +567,24 @@ public class JSON {
             return writer(jackson).with(printer).writeValueAsString(this.json);
         } else {
             return this.json.toString();
+        }
+    }
+
+    public byte[] toJsonBytes() {
+        return this.toJsonBytes(false);
+    }
+
+    public byte[] toJsonBytes(boolean pretty) {
+        return this.toJsonBytes(pretty, 4);
+    }
+
+    @SneakyThrows
+    public byte[] toJsonBytes(boolean pretty, int spaceAmount) {
+        if (pretty) {
+            PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
+            return writer(jackson).with(printer).writeValueAsBytes(this.json);
+        } else {
+            return writer(jackson).writeValueAsBytes(this.json);
         }
     }
 

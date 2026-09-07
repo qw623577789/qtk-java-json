@@ -32,9 +32,11 @@ dependencies {
 
 - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
 - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
-- **JSON parse(Object object)** 可将大部分Java对象(*Class、Map、List、File、Reader*)转换为JSON实例, ``byte[]``按UTF-8编码的JSON文本解析(*非法JSON二进制会抛``JsonParseException``,空``byte[]``解析为``missing``节点*)
+- **JSON parse(Object object)** 可将大部分Java对象(*Class、Map、List、File、Reader、InputStream*)转换为JSON实例, ``byte[]``按UTF-8编码的JSON文本解析(*非法JSON二进制会抛``JsonParseException``,空``byte[]``解析为``missing``节点*)
 - **String toString(boolean pretty, int spaceAmount)** 将JSON实例转换为JSON字符串, ``pretty``
   控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
+- **byte[] toJsonBytes()/byte[] toJsonBytes(boolean pretty, int spaceAmount)** 将JSON实例转换为UTF-8编码JSON文本的``byte[]``(
+  *与``parse``的``byte[]``/``InputStream``入口互逆*), ``pretty``控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
 - **JSON deepCopy()** 深拷贝JSON实例
 - **JSON missingNode()** 快速创建``missing``值的JSON实例
 - **JSON nullNode()** 快速创建``null``值的JSON实例
@@ -133,6 +135,7 @@ dependencies {
       ),数组节点(*含``[*]``遍历*)逐元素合并,返回point所在的JSON实例
     - **JSON deepCopy()** 深拷贝point指向的节点,返回独立的JSON实例(*修改不影响原数据*)
     - **String toString(boolean pretty, int spaceAmount)** 将point指向的节点转换为JSON字符串,``pretty``控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
+    - **byte[] toJsonBytes()/byte[] toJsonBytes(boolean pretty, int spaceAmount)** 将point指向的节点转换为UTF-8编码JSON文本的``byte[]``, ``pretty``控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
 
 ### JSON摘取/忽略节点
 
