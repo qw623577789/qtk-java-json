@@ -7,10 +7,7 @@ import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.*;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -278,7 +275,13 @@ public class JSON {
 
     @SneakyThrows
     public JsonNode toJsonNode(Object object) {
+        return toJsonNode(object, false);
+    }
+
+    @SneakyThrows
+    public JsonNode toJsonNode(Object object, boolean noParseString) {
         if (object instanceof String string) {
+            if (noParseString) return TextNode.valueOf(string);
             return (
                 (string.startsWith("{") && string.endsWith("}")) ||
                     (string.startsWith("[") && string.endsWith("]"))
@@ -391,7 +394,7 @@ public class JSON {
 
     public JSON put(String id, Object value) {
         ObjectNode objectNode = (ObjectNode) (this.json);
-        objectNode.set(id, toJsonNode(value));
+        objectNode.set(id, toJsonNode(value, true));
         return this;
     }
 
@@ -407,7 +410,7 @@ public class JSON {
         if (value == null) {
             arrayNode.add(NullNode.getInstance());
         } else {
-            for (Object item : value) arrayNode.add(toJsonNode(item));
+            for (Object item : value) arrayNode.add(toJsonNode(item, true));
         }
 
         return this;

@@ -322,7 +322,7 @@ public class Get {
         Object defaultValue = defaultType.getValue();
         if (defaultValue instanceof Supplier) defaultValue = ((Supplier<?>) defaultValue).get();
 
-        JsonNode jacksonNode = jsonHelper.toJsonNode(defaultValue);
+        JsonNode jacksonNode = jsonHelper.toJsonNode(defaultValue, true);
 
         Node fixNode = Node.gen(jacksonNode, nodePath);
 

@@ -74,7 +74,7 @@ public class Point {
     }
 
     public JSON put(String id, Object value) {
-        JsonNode jacksonNode = jsonHelper.toJsonNode(value);
+        JsonNode jacksonNode = jsonHelper.toJsonNode(value, true);
 
         String absouleBreakcrumb = this.breadcrumb + this.point;
 
@@ -118,7 +118,7 @@ public class Point {
     }
 
     public JSON put(Object value) {
-        var jacksonNode = jsonHelper.toJsonNode(value);
+        var jacksonNode = jsonHelper.toJsonNode(value, true);
 
         String absoluteBreadcrumb = this.breadcrumb + this.point;
 
@@ -327,7 +327,7 @@ public class Point {
 
         String absoluteBreadcrumb = this.breadcrumb + this.point;
 
-        var jsonNodes = Arrays.stream(items).map(jsonHelper::toJsonNode).toList();
+        var jsonNodes = Arrays.stream(items).map(i -> jsonHelper.toJsonNode(i, true)).toList();
 
         if (absoluteBreadcrumb.contains("[*]")) {
             pointValue.getValueNode().stream().forEach(i -> {
