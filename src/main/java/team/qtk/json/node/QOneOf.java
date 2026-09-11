@@ -80,11 +80,11 @@ public class QOneOf<T extends QOneOf> {
     }
 
     public <TT> TT to(Class<TT> transforClass) {
-        return JSON.clone(this, transforClass);
+        return JSON.fastTo(this, transforClass);
     }
 
     public T clone() {
-        return (T) JSON.clone(this, this.getClass());
+        return (T) JSON.fastTo(this, this.getClass());
     }
 
 }

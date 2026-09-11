@@ -32,10 +32,12 @@ dependencies {
 
 - **JSON new JSON(boolean isObject)** 创建一个JSON实例, true/false控制创建出来是**JSON对象**还是**JSON数组**
 - **JSON new JSON(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例
-- **JSON parse(Object object)** 可将大部分Java对象(*Class、Map、List、File、Reader、InputStream*)转换为JSON实例, ``byte[]``按UTF-8编码的JSON文本解析(*非法JSON二进制会抛``JsonParseException``,空``byte[]``解析为``missing``节点*)
+- **JSON parse(Object object)** 可将大部分Java对象(*Class、Map、List、File、Reader、InputStream*)转换为JSON实例, ``byte[]``
+  按UTF-8编码的JSON文本解析(*非法JSON二进制会抛``JsonParseException``,空``byte[]``解析为``missing``节点*)
 - **String toString(boolean pretty, int spaceAmount)** 将JSON实例转换为JSON字符串, ``pretty``
   控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
-- **byte[] toJsonBytes()/byte[] toJsonBytes(boolean pretty, int spaceAmount)** 将JSON实例转换为UTF-8编码JSON文本的``byte[]``(
+- **byte[] toJsonBytes()/byte[] toJsonBytes(boolean pretty, int spaceAmount)** 将JSON实例转换为UTF-8编码JSON文本的
+  ``byte[]``(
   *与``parse``的``byte[]``/``InputStream``入口互逆*), ``pretty``控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
 - **JSON deepCopy()** 深拷贝JSON实例
 - **JSON missingNode()** 快速创建``missing``值的JSON实例
@@ -43,7 +45,8 @@ dependencies {
 - **JSON createObject()** 快速创建空对象的JSON实例
 - **JSON createArray()** 快速创建空数组的JSON实例
 - **JSON warp(JsonNode jacksonNode)** 将com.fasterxml.jackson的``JsonNode``转化为JSON实例(*不深拷贝,共享引用*)
-- **JSON warp(ObjectMapper jacksonMapper, JsonNode jacksonNode)** 同上, 可指定``ObjectMapper``(*用于CustomJSON自定义mapper场景*)
+- **JSON warp(ObjectMapper jacksonMapper, JsonNode jacksonNode)** 同上, 可指定``ObjectMapper``(
+  *用于CustomJSON自定义mapper场景*)
 - **List\<String\> keys()** 获取JSON对象的所有key
 - **List\<JSON\> values()** 获取JSON对象的所有value(*共享引用,修改会影响原数据*)
 - **List\<Map.Entry\<String, JsonNode\>\> entries()** 获取JSON对象的所有key/value条目(*共享引用*)
@@ -55,7 +58,7 @@ dependencies {
 
 ### 额外
 
-- 对象克隆: **T clone(Object object, Class<T> toClass)**,性能比``JSON.parse(object).getAs(toClass)``强
+- 对象克隆: **T fastTo(Object object, Class<T> toClass)**,性能比``JSON.parse(object).getAs(toClass)``强
 - 序列化: **String stringify(Object object, boolean pretty, int spaceAmount)**,性能比``JSON.parse(object).toString()``强
 
 ### JSON新增
@@ -67,7 +70,8 @@ dependencies {
   *JSON实例*
 - **JSON add(Object ...value)** 在**JSON数组实例**上一次性添加无限个元素, value支持*大部分Java对象*及*JSON实例*
 - **JSON concat(List<?> list)** 在**JSON数组实例**上添加存于``List``的元素，value支持*大部分Java对象*及*JSON实例*
-- **JSON sPutRef(String id, JSON value)** *静态方法*, 同``sPut``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+- **JSON sPutRef(String id, JSON value)** *静态方法*, 同``sPut``, 但value以*共享引用*方式放入(
+  *不深拷贝,修改会影响原数据*)
 - **JSON putRef(String id, JSON value)** 同``put``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
 - **JSON sAddRef(JSON... value)** *静态方法*, 同``sAdd``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
 - **JSON addRef(JSON... value)** 同``add``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
@@ -85,15 +89,18 @@ dependencies {
 - **Point point(String point, HashMap<String, Object> defaultValueMap, boolean toUpdateNode)** 在**Point point(String
   point)**基础上，可为``第一个参数的point``路径批量设置默认值(point=".aaa.bbb.ccc", 可先设置.aaa = 对象，再设置.aaa.bbb =
   对象)，在``get``、``has``操作时，若**节点不存在**时．**执行函数/直接**返回默认值
-- **CustomJSON custom(UnaryOperator\<CustomJSON\> objectMapperBuilder)** *静态方法*, 自定义jackson库特性后进行JSON操作(*详见下方定制JSON库特性章节*)
+- **CustomJSON custom(UnaryOperator\<CustomJSON\> objectMapperBuilder)** *静态方法*, 自定义jackson库特性后进行JSON操作(
+  *详见下方定制JSON库特性章节*)
 - Point操作
     - **Get get()** 返回``Get``实例，根据point获取节点值，有``asString()``、``asXXXX()``等方法最终得到值(开启**默认值、可选链特性
       **)
         - **String asString()**、**Long asLong()**、**Integer asInt()**、**Boolean asBoolean()**、**Double asDouble()**、*
-          *Void asNull()**、**BigDecimal asBigDecimal()**、**Float asFloat()**、**LocalDateTime asLocalDateTime()**、**Object
+          *Void asNull()*
+          *、**BigDecimal asBigDecimal()**、**Float asFloat()**、**LocalDateTime asLocalDateTime()**、**Object
           asObject()**、**\<T\> T as(Class\<T\> type)**、**List\<Object\> asList()**、**\<T\> List\<T\>
           asList(Class\<T\> itemType)**、**HashMap\<String, T\> asMap(Class\<T\> valueType)**、**HashMap\<String,
-          Object\> asMap()**、**JSON asJSON()**、**JSON asJSON(boolean toClone)**(*false时共享引用,修改会影响原数据*)、**size()**
+          Object\> asMap()**、**JSON asJSON()**、**JSON asJSON(boolean toClone)**(*false时共享引用,修改会影响原数据*)、*
+          *size()**
         - **boolean isArray()** 返回节点是否为数组节点
         - **boolean isObject()** 返回节点是否为对象节点
         - **boolean isNull()** 返回节点是否为Null节点
@@ -106,7 +113,8 @@ dependencies {
     - **Get get(boolean toWithDefault, boolean supportNullishKey, boolean nullable)** 在上get方法基础上，可以控制*
       *是否开启默认值**、**是否开启可选链**特性, ``nullable``控制当最终结果不存在时，**是否返回null，否则在没有可选链标注情况下，会抛空指针错误
       **,*此属性等同于给point每个节点加上可选链标志*
-    - **Object getAsIf(Function<JSON, Class> ifs)、Object getAsIf(GetAsIf... ifs)** 根据值情况，动态指定getAs类型(*JSON实例方法*)
+    - **Object getAsIf(Function<JSON, Class> ifs)、Object getAsIf(GetAsIf... ifs)** 根据值情况，动态指定getAs类型(
+      *JSON实例方法*)
     - **JSON put(String id, Object value)** 给对应point的JSON对象节点赋值，支持**大部分JAVA对象**、**JSON实例**、*
       *com.fasterxml.jackson的``JsonNode``**
     - **JSON put(Object value)** 给对应point的JSON对象节点赋值(**节点名在point里**)，支持**大部分JAVA对象**、**JSON实例**、
@@ -115,7 +123,8 @@ dependencies {
       *com.fasterxml.jackson的``JsonNode``**
     - **JSON concat(List\<Object\> list)** 给对应point的JSON数组节点添加元素，支持**大部分JAVA对象**、**JSON实例**、*
       *com.fasterxml.jackson的``JsonNode``**
-    - **JSON putRef(String id, JSON value)/JSON putRef(JSON value)** 同``put``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
+    - **JSON putRef(String id, JSON value)/JSON putRef(JSON value)** 同``put``, 但value以*共享引用*方式放入(
+      *不深拷贝,修改会影响原数据*)
     - **JSON addRef(JSON... items)** 同``add``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
     - **JSON concatRef(List\<JSON\> list)** 同``concat``, 但value以*共享引用*方式放入(*不深拷贝,修改会影响原数据*)
     - **boolean has()** 判断point对应节点值有没有存在(*默认会开启默认值特性*)
@@ -129,13 +138,18 @@ dependencies {
     - **JSON retain(String... fieldName)** 只保留当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
     - **JSON exclude(String... fieldName)** 排除当前节点下某些字段(*此操作对象引用操作，会影响原来的数据*)
     - **JSON rmNull()** 删除point对象节点下所有为null的key
-    - **JSON merge(Object value)/JSON merge(Object... keyValues)/JSON mergeIgnoreNull(Object value)/JSON mergeIgnoreNull(Object...
-      keyValues)/JSON mergeDeep(Object value)/JSON mergeDeep(Object... keyValues)/JSON mergeDeepIgnoreNull(Object value)/JSON
-      mergeDeepIgnoreNull(Object... keyValues)** 在point指向的JSON对象节点上执行合并(*合并语义与JSON实例merge系列一致,详见下方JSON合并章节*
+    - **JSON merge(Object value)/JSON merge(Object... keyValues)/JSON mergeIgnoreNull(Object value)/JSON
+      mergeIgnoreNull(Object...
+      keyValues)/JSON mergeDeep(Object value)/JSON mergeDeep(Object... keyValues)/JSON mergeDeepIgnoreNull(Object value)
+      /JSON
+      mergeDeepIgnoreNull(Object... keyValues)** 在point指向的JSON对象节点上执行合并(
+      *合并语义与JSON实例merge系列一致,详见下方JSON合并章节*
       ),数组节点(*含``[*]``遍历*)逐元素合并,返回point所在的JSON实例
     - **JSON deepCopy()** 深拷贝point指向的节点,返回独立的JSON实例(*修改不影响原数据*)
-    - **String toString(boolean pretty, int spaceAmount)** 将point指向的节点转换为JSON字符串,``pretty``控制是否美化输出json,``spaceAmount``可以控制美化输出时空格数量
-    - **byte[] toJsonBytes()/byte[] toJsonBytes(boolean pretty, int spaceAmount)** 将point指向的节点转换为UTF-8编码JSON文本的``byte[]``, ``pretty``控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
+    - **String toString(boolean pretty, int spaceAmount)** 将point指向的节点转换为JSON字符串,``pretty``控制是否美化输出json,
+      ``spaceAmount``可以控制美化输出时空格数量
+    - **byte[] toJsonBytes()/byte[] toJsonBytes(boolean pretty, int spaceAmount)** 将point指向的节点转换为UTF-8编码JSON文本的
+      ``byte[]``, ``pretty``控制是否美化输出json, ``spaceAmount``可以控制美化输出时空格数量
 
 ### JSON摘取/忽略节点
 
@@ -159,9 +173,11 @@ dependencies {
 
 ### 定制JSON库特性(Jackson特性)
 
-- **CustomJSON custom(UnaryOperator\<CustomJSON\> objectMapperBuilder)** *静态方法*, 创建自定义jackson特性的``CustomJSON``实例,
+- **CustomJSON custom(UnaryOperator\<CustomJSON\> objectMapperBuilder)** *静态方法*, 创建自定义jackson特性的
+  ``CustomJSON``实例,
   内部已自动调用``confirmToCreateMapper()``生成``ObjectMapper``, 返回的``CustomJSON``实例可直接链式使用JSON操作方法
-    - **CustomJSON features(HashMap\<Object, Boolean\> features)** 控制``jackson``库``enable/disable``特性, 支持``JsonReadFeature``、
+    - **CustomJSON features(HashMap\<Object, Boolean\> features)** 控制``jackson``库``enable/disable``特性, 支持
+      ``JsonReadFeature``、
       ``JsonWriteFeature``、``SerializationFeature``、``DeserializationFeature``
     - **CustomJSON serializationInclusion(JsonInclude.Include setSerializationInclusion)** 控制``jackson``
       库``setSerializationInclusion``特性
@@ -170,7 +186,7 @@ dependencies {
       ,应用于后续的操作</font>**(``custom()``内部已自动调用, 一般无需手动调用)
 - 生成的``CustomJSON``实例支持与``JSON``一致的创建/操作方法: **JSON(JsonNode jacksonNode)**、**JSON(boolean isObject)**、
   **missingNode()**、**nullNode()**、**sPut(String id, Object value)**、**sAdd(Object... value)**、**createObject()**、
-  **createArray()**、**parse(Object object)**、**clone(Object object, Class\<T\> toClass)**、**stringify(Object object[,
+  **createArray()**、**parse(Object object)**、**fastTo(Object object, Class\<T\> toClass)**、**stringify(Object object[,
   boolean pretty, int spaceAmount])**、**warp(JsonNode object)**
 
 ## Usage
@@ -587,10 +603,10 @@ Assertions.assertEquals(
         )
         .serializationInclusion(JsonInclude.Include.NON_NULL)
     )
-    .parse("{a:1}")
-    .point()
-    .get()
-    .isObject(),
+        .parse("{a:1}")
+        .point()
+        .get()
+        .isObject(),
     true
 );
 ```

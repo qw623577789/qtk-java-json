@@ -98,8 +98,8 @@ public class JSON {
     }
 
     @SneakyThrows
-    public static <T> T clone(Object object, Class<T> toClass) {
-        return clone(defaultJackson, object, toClass);
+    public static <T> T fastTo(Object object, Class<T> toClass) {
+        return fastTo(defaultJackson, object, toClass);
     }
 
     @SneakyThrows
@@ -241,8 +241,8 @@ public class JSON {
         }
 
         @SneakyThrows
-        public <T> T clone(Object object, Class<T> toClass) {
-            return JSON.clone(customJacksonMapper, object, toClass);
+        public <T> T fastTo(Object object, Class<T> toClass) {
+            return JSON.fastTo(customJacksonMapper, object, toClass);
         }
 
         @SneakyThrows
@@ -1809,7 +1809,9 @@ public class JSON {
     }
 
     @SneakyThrows
-    private static <T> T clone(ObjectMapper jacksonMapper, Object object, Class<T> toClass) {
+    private static <T> T fastTo(ObjectMapper jacksonMapper, Object object, Class<T> toClass) {
+        if (object instanceof JSON j) object = j.getJacksonNode();
+
         if (toClass == String.class) {
             // convertValue不支持String目标类型，直接序列化为JSON字符串
             return (T) (object == null ? null
@@ -1871,6 +1873,7 @@ public class JSON {
 
     @SneakyThrows
     private static String stringify(ObjectMapper jacksonMapper, Object object, boolean pretty, int spaceAmount) {
+        object = object instanceof JSON j ? j.getJacksonNode() : object;
         if (pretty) {
             PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
             return writer(jacksonMapper).with(printer).writeValueAsString(object);
@@ -1881,6 +1884,7 @@ public class JSON {
 
     @SneakyThrows
     private static byte[] toJsonBytes(ObjectMapper jacksonMapper, Object object, boolean pretty, int spaceAmount) {
+        object = object instanceof JSON j ? j.getJacksonNode() : object;
         if (pretty) {
             PrettyPrinter printer = new team.qtk.json.JsonStringifyPrettyPrinter(spaceAmount);
             return writer(jacksonMapper).with(printer).writeValueAsBytes(object);
