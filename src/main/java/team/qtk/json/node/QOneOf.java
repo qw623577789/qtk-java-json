@@ -9,6 +9,8 @@ import team.qtk.json.point.Point;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 //@JsonSerialize(using = OneOfSerializer.class)
@@ -76,7 +78,8 @@ public class QOneOf<T extends QOneOf> {
     }
 
     public boolean assertObjectPointValueEquals(String point, Object value) {
-        return assertObject(point, pointer -> pointer.get(true).as(value.getClass()).equals(value));
+        Class<?> type = value == null ? Object.class : value.getClass();
+        return assertObject(point, pointer -> Objects.equals(pointer.get(true).as(type), value));
     }
 
     public <TT> TT to(Class<TT> transforClass) {
